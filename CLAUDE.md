@@ -23,15 +23,3 @@
 
 - `.tmpl` templates: `{{ onepasswordRead "op://vault/item/field" }}` — vault/item must match exactly
 - `dot_claude/dot_env`: plain file (NOT template) with native `op://` references
-
-## Claude Code Settings (`dot_claude/private_settings.json`)
-
-- `DISABLE_TELEMETRY`, `DISABLE_ERROR_REPORTING`, `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` は GrowthBook フィーチャーフラグ取得をブロックする — これらを設定すると Auto Mode や Opus 1M など GrowthBook 管理の機能が利用不可になる
-- Auto Mode が「not available on your plan」になる場合、まず `~/.claude.json` の `cachedGrowthBookFeatures.tengu_auto_mode_config` を確認 — `"enabled": "disabled"` かつ上記 env var がある場合は env var が原因
-- env var 削除後は `rm ~/.claude.json` でキャッシュクリア + CLI 再起動が必要
-- 関連 Issue: anthropics/claude-code#34178, anthropics/claude-code#38450
-
-## Tool-Specific Rules
-
-- `.claude/rules/` にツール固有の規約を配置（`paths` スコープで該当ファイル編集時に自動読み込み）
-- `~/.config/nvim/` is a separate repo — NOT managed here

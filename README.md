@@ -62,7 +62,6 @@ chezmoi + 1Password CLI で管理する macOS 設定ファイル群。シェル�
 
 | ツール | 用途 | 設定ファイル |
 |--------|------|-------------|
-| **[Neovim](https://neovim.io/)** | メインエディタ（設定は[別リポジトリ](https://github.com/joe-yama/nvim)で管理） | — |
 | **[Helix](https://helix-editor.com/)** | モーダルエディタ。Tree-sitter / LSP ネイティブ対応、Catppuccin Mocha テーマ | `dot_config/helix/` |
 | **VS Code** | サブエディタ。拡張機能は `dot_Brewfile` の `vscode` セクションで管理 | — |
 
@@ -162,15 +161,6 @@ ssh -T github-personal       # プライベートアカウント
 - `~/.zshrc.local` — プロキシ、マシン固有export
 - `~/.ssh/config.d/proxy.conf` — 社内プロキシ
 - `~/.Brewfile.local` — マシン固有パッケージ
-
-## Neovim
-
-Neovim設定は独立したリポジトリで管理：
-
-```bash
-ghq get <nvim-config-repo-url>
-# or: git clone <url> ~/.config/nvim
-```
 
 ## Homebrew Package Management
 
