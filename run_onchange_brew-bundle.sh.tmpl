@@ -1,0 +1,15 @@
+#!/bin/bash
+# Brewfile hash: {{ include "dot_Brewfile" | sha256sum }}
+set -euo pipefail
+brew bundle --global || true
+if [ -f "$HOME/.Brewfile.local" ]; then
+    brew bundle --file="$HOME/.Brewfile.local" || true
+fi
+
+# Show packages not listed in Brewfile (not auto-removed)
+orphans=$(brew bundle cleanup --global 2>/dev/null || true)
+if [ -n "$orphans" ]; then
+    echo ""
+    echo "=== Packages not in Brewfile (run 'brew bundle cleanup --global --force' to remove) ==="
+    echo "$orphans"
+fi

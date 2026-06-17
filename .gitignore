@@ -1,0 +1,12 @@
+# Machine-specific local overrides (never tracked)
+*.local
+*.secrets
+
+# gh CLI state (machine-specific, contains account/enterprise host info) — never track
+dot_config/gh/hosts.yml
+
+# OS
+.DS_Store
+
+# jj internals (colocated)
+.jj/

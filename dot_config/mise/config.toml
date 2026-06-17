@@ -1,0 +1,8 @@
+# Global mise configuration (chezmoi 管理)
+# Java/JDK ランタイム — Eclipse Temurin LTS。配列の先頭がグローバル既定。
+[tools]
+java = ["temurin-21", "temurin-17", "temurin-25"]
+
+[env]
+# `java@NN` ショートハンドを Temurin に解決（例: `mise use java@22` → temurin-22）
+MISE_JAVA_SHORTHAND_VENDOR = "temurin"

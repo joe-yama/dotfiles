@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# Regenerate ClaudeIcon.ttf from claude-icon.svg via fontforge.
+# SVG hash: {{ include "dot_config/sketchybar/fonts/claude-icon.svg" | sha256sum }}
+set -euo pipefail
+
+if ! command -v fontforge >/dev/null 2>&1; then
+  echo "fontforge not found — skip ClaudeIcon build"
+  exit 0
+fi
+
+SVG="$HOME/.config/sketchybar/fonts/claude-icon.svg"
+TTF="$HOME/Library/Fonts/ClaudeIcon.ttf"
+if [ ! -f "$SVG" ]; then
+  echo "SVG not found at $SVG — skip"
+  exit 0
+fi
+
+SCRIPT=$(mktemp -t claude-icon-XXXXXX.py)
+trap 'rm -f "$SCRIPT"' EXIT
+
+cat > "$SCRIPT" <<'PY'
+import sys
+import fontforge
+
+svg_path, ttf_path, codepoint = sys.argv[1], sys.argv[2], int(sys.argv[3], 0)
+
+font = fontforge.font()
+font.fontname = "ClaudeIcon"
+font.familyname = "ClaudeIcon"
+font.fullname = "ClaudeIcon"
+font.weight = "Regular"
+font.version = "1.0"
+font.em = 1024
+font.encoding = "UnicodeFull"
+font.ascent = 960
+font.descent = 64
+
+glyph = font.createChar(codepoint, "claude_logo")
+glyph.importOutlines(svg_path)
+bb = glyph.boundingBox()
+gw, gh = bb[2] - bb[0], bb[3] - bb[1]
+# fill the em box more aggressively (~96%), matching Nerd Font symbol metrics
+scale = 980.0 / max(gw, gh)
+glyph.transform((scale, 0, 0, scale, 0, 0))
+bb = glyph.boundingBox()
+gw, gh = bb[2] - bb[0], bb[3] - bb[1]
+# center horizontally in the em box; vertically center around y=420 (a touch
+# below em center to match MDI/Nerd Font visual baseline so it aligns with
+# sibling icons and sketchybar's typographic center)
+dx = (1024 - gw) / 2.0 - bb[0]
+dy = 300 - (bb[1] + gh / 2.0)
+glyph.transform((1, 0, 0, 1, dx, dy))
+glyph.width = 1024
+
+font.generate(ttf_path)
+PY
+
+fontforge -lang=py -script "$SCRIPT" "$SVG" "$TTF" 0xE900 >/dev/null 2>&1
+echo "ClaudeIcon.ttf regenerated at $TTF"

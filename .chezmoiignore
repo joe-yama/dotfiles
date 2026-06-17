@@ -1,0 +1,12 @@
+README.md
+CLAUDE.md
+Makefile
+bootstrap.sh
+.git
+.jj
+
+# ~/.ssh/config is appended to by `coder config-ssh` (machine-specific, regenerable) — leave unmanaged
+.ssh/config
+
+# gh CLI hosts.yml holds account usernames + enterprise host (e.g. internal GHE) — machine-specific, never manage
+.config/gh/hosts.yml

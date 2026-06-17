@@ -1,0 +1,65 @@
+theme = "catppuccin_mocha"
+
+[editor]
+line-number = "relative"
+cursorline = true
+auto-save = { focus-lost = true, after-delay.enable = true }
+bufferline = "multiple"
+color-modes = true
+true-color = true
+shell = ["zsh", "-c"]
+
+[editor.cursor-shape]
+insert = "bar"
+normal = "block"
+select = "underline"
+
+[editor.indent-guides]
+render = true
+character = "|"
+
+[editor.file-picker]
+hidden = false
+
+[editor.soft-wrap]
+enable = true
+
+[editor.smart-tab]
+enable = true
+
+[editor.search]
+smart-case = true
+
+[editor.whitespace.render]
+trailing = "all"
+
+[editor.gutters]
+layout = ["diagnostics", "spacer", "line-numbers", "spacer", "diff"]
+
+[editor.statusline]
+left = ["mode", "spinner", "file-name", "read-only-indicator", "file-modification-indicator"]
+right = ["diagnostics", "selections", "register", "position", "file-encoding", "file-line-ending", "file-type"]
+
+[editor.lsp]
+display-messages = true
+display-inlay-hints = true
+
+[keys.normal]
+"A-," = "goto_previous_buffer"
+"A-." = "goto_next_buffer"
+"A-w" = ":buffer-close"
+"A-q" = ":quit"
+
+[keys.normal.space]
+w = ":write"
+q = ":quit"
+
+[keys.normal.space.f]
+f = "file_picker"
+g = "file_picker_in_current_buffer_directory"
+
+[keys.normal.space.b]
+b = "buffer_picker"
+n = "goto_next_buffer"
+p = "goto_previous_buffer"
+d = ":buffer-close"

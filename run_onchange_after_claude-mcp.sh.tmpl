@@ -1,0 +1,73 @@
+#!/bin/bash
+# chezmoi:template
+# mcpServers hash: {{ include "dot_claude/private_settings.json" | sha256sum }}
+#
+# Sync mcpServers from dot_claude/private_settings.json to claude mcp (user scope).
+# Triggered by chezmoi when settings.json changes.
+set -euo pipefail
+
+SETTINGS="${HOME}/.claude/settings.json"
+
+if ! command -v claude >/dev/null 2>&1; then
+  echo "claude CLI not found, skipping MCP sync" >&2
+  exit 0
+fi
+
+if ! command -v jq >/dev/null 2>&1; then
+  echo "jq not found, skipping MCP sync" >&2
+  exit 0
+fi
+
+# Extract mcpServers from settings.json
+MCP_JSON=$(jq -r '.mcpServers // empty' "${SETTINGS}")
+if [ -z "${MCP_JSON}" ]; then
+  echo "No mcpServers in settings.json, skipping"
+  exit 0
+fi
+
+# Get list of desired servers
+DESIRED_SERVERS=$(echo "${MCP_JSON}" | jq -r 'keys[]')
+
+# Get currently registered user-scope MCP servers from ~/.claude.json
+CLAUDE_JSON="${HOME}/.claude.json"
+if [ -f "${CLAUDE_JSON}" ]; then
+  CURRENT_SERVERS=$(jq -r '.mcpServers // {} | keys[]' "${CLAUDE_JSON}" 2>/dev/null || true)
+else
+  CURRENT_SERVERS=""
+fi
+
+# Remove user-scope servers that are no longer in settings.json
+for server in ${CURRENT_SERVERS}; do
+  if ! echo "${DESIRED_SERVERS}" | grep -qx "${server}"; then
+    echo "Removing MCP server: ${server}"
+    claude mcp remove --scope user "${server}" 2>/dev/null || true
+  fi
+done
+
+# Add/update servers from settings.json
+for server in ${DESIRED_SERVERS}; do
+  SERVER_JSON=$(echo "${MCP_JSON}" | jq -r --arg s "${server}" '.[$s]')
+  SERVER_TYPE=$(echo "${SERVER_JSON}" | jq -r '.type // "stdio"')
+
+  echo "Adding MCP server: ${server} (${SERVER_TYPE})"
+  claude mcp remove --scope user "${server}" 2>/dev/null || true
+
+  if [ "${SERVER_TYPE}" = "http" ]; then
+    URL=$(echo "${SERVER_JSON}" | jq -r '.url')
+    claude mcp add --transport http --scope user "${server}" "${URL}" 2>/dev/null
+  else
+    COMMAND=$(echo "${SERVER_JSON}" | jq -r '.command')
+    ARGS=$(echo "${SERVER_JSON}" | jq -r '.args // [] | .[]')
+
+    # Build claude mcp add command
+    CMD_ARGS=("mcp" "add" "--scope" "user" "${server}" "--" "${COMMAND}")
+    while IFS= read -r arg; do
+      [ -z "${arg}" ] && continue
+      CMD_ARGS+=("${arg}")
+    done <<< "${ARGS}"
+
+    claude "${CMD_ARGS[@]}" 2>/dev/null
+  fi
+done
+
+echo "Claude MCP servers synced."

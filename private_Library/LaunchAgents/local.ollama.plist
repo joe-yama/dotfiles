@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>local.ollama</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/bin/zsh</string>
+		<string>-c</string>
+		<string>[ -f "$HOME/.zshrc.local" ] &amp;&amp; source "$HOME/.zshrc.local"; exec /opt/homebrew/bin/ollama serve</string>
+	</array>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>OLLAMA_FLASH_ATTENTION</key>
+		<string>1</string>
+		<key>OLLAMA_KV_CACHE_TYPE</key>
+		<string>q8_0</string>
+		<!-- 社内プロキシ環境で MLX モデル(多数の小ファイルで構成)のblob DLが
+		     プロキシを迂回し直接CDNへ出てFWブロックされる問題の回避策。
+		     client2 がプロキシ経由DLを実現。MAXSTREAMS は並列数で、1 だと
+		     小ファイル数千個が直列になり激遅のため 8 に設定。
+		     ref: ollama/ollama#15708, ollama/ollama#15358 -->
+		<key>OLLAMA_EXPERIMENT</key>
+		<string>client2</string>
+		<key>OLLAMA_REGISTRY_MAXSTREAMS</key>
+		<string>8</string>
+	</dict>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<true/>
+	<key>StandardOutPath</key>
+	<string>/opt/homebrew/var/log/ollama.log</string>
+	<key>StandardErrorPath</key>
+	<string>/opt/homebrew/var/log/ollama.log</string>
+	<key>WorkingDirectory</key>
+	<string>/opt/homebrew/var</string>
+</dict>
+</plist>

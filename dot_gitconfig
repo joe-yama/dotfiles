@@ -1,0 +1,54 @@
+[ghq]
+	root = ~/repo
+[commit]
+	gpgsign = true
+[include]
+	path = ~/.gitconfig.local
+[includeIf "gitdir:~/repo/github-personal/joe-yama/"]
+	path = ~/.gitconfig-personal
+[includeIf "gitdir:~/repo/github.com/joe-yama/"]
+	path = ~/.gitconfig-personal
+[core]
+	autocrlf = false
+	precomposeunicode = true
+	eol = lf
+
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+[gpg]
+	format = ssh
+[gpg "ssh"]
+	program = /Applications/1Password.app/Contents/MacOS/op-ssh-sign
+[gtr "editor"]
+	default = code
+[alias]
+	sw = switch
+[init]
+	defaultBranch = main
+[diff]
+	colorMoved = default
+[merge]
+	conflictstyle = zdiff3
+[rerere]
+	enabled = true
+[fetch]
+	prune = true
+	pruneTags = true
+[pull]
+	rebase = true
+[branch]
+	sort = -committerdate
+[pager]
+	diff = delta
+	log = delta
+	reflog = delta
+	show = delta
+[interactive]
+	diffFilter = delta --color-only
+[delta]
+	navigate = true
+	side-by-side = true
+	syntax-theme = Catppuccin Mocha

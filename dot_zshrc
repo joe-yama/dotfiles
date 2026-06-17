@@ -1,0 +1,174 @@
+# Path to your Oh My Zsh installation.
+export ZSH="$HOME/.oh-my-zsh"
+ZSH_THEME="robbyrussell"
+DISABLE_AUTO_TITLE="true"
+zstyle ':omz:update' mode auto      # update automatically without asking
+# Skip compaudit security check for faster compinit
+ZSH_DISABLE_COMPFIX=true
+# Docker CLI completions (fpath must be added before OMZ's compinit)
+fpath=(/Users/user/.docker/completions $fpath)
+plugins=(git aliases copypath history docker brew zsh-completions zsh-autosuggestions zsh-syntax-highlighting eza fzf tldr aws terraform)
+source $ZSH/oh-my-zsh.sh
+
+export LANG=en_US.UTF-8
+
+# Preferred editor for local and remote sessions
+if [[ -n $SSH_CONNECTION ]]; then
+  export EDITOR='vim'
+else
+  export EDITOR='hx'
+fi
+
+########### USER CONFIGS ##########
+
+### Proxy ###
+# Machine-specific proxy settings loaded from ~/.zshrc.local
+
+### fzf ###
+
+# frepo - change directory to a ghq managed repository
+frepo() {
+  local repodir=$(ghq list --full-path | fzf -1 +m) && cd $repodir
+}
+
+### PATH ###
+export PNPM_HOME="$HOME/Library/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
+esac
+export PATH=${PATH}:${HOME}/.local/bin
+
+### GPG for signed commit ###
+export GPG_TTY=$(tty)
+
+### Alias ###
+alias lg="lazygit"
+alias g="git"
+compdef g="git"
+alias gst="git status"
+alias gco="git checkout"
+alias gcb="git checkout -b"
+alias gcd="git checkout develop"
+alias gpull="git pull"
+alias gpush="git push"
+
+alias av="aws-vault"
+alias avx="av exec"
+alias avl="av login"
+
+# Workaround: Homebrew python@3.14 3.14.4 の pyexpat が system libexpat の
+# _XML_SetAllocTrackerActivationThreshold シンボル欠落で dlopen 失敗する問題。
+# Homebrew expat を DYLD_LIBRARY_PATH で先行させて回避する。
+# Homebrew 側で修正 bottle が出たらこのブロックごと削除して brew upgrade すれば元に戻る。
+__awsvault_expat_fix="/opt/homebrew/opt/expat/lib"
+aws-vault() { DYLD_LIBRARY_PATH="${__awsvault_expat_fix}${DYLD_LIBRARY_PATH:+:${DYLD_LIBRARY_PATH}}" command aws-vault "$@"; }
+aws()       { DYLD_LIBRARY_PATH="${__awsvault_expat_fix}${DYLD_LIBRARY_PATH:+:${DYLD_LIBRARY_PATH}}" command aws "$@"; }
+
+alias vim="nvim"
+compdef vim="nvim"
+
+### Modern CLI replacements ###
+# bat: cat の代替 — シンタックスハイライト・行番号・git差分表示付き
+alias cat="bat --paging=never"
+export BAT_THEME="Catppuccin Mocha"
+export MANPAGER="sh -c 'col -bx | bat -l man -p'"
+# fd: find の代替 — シンプルな構文・高速・.gitignore尊重
+alias find="fd"
+# ripgrep: grep の代替 — 高速・.gitignore尊重・カラー出力
+alias grep="rg"
+# bottom: top の代替 — グラフィカルなシステムモニター
+alias top="btm"
+# eza: tree の代替 — gitステータス・アイコン付きツリー表示
+alias tree="eza --tree --icons --git"
+
+
+### 1Password ###
+
+# aws plugin for 1password
+export SSH_AUTH_SOCK=~/Library/Group\ Containers/2BUA8C4S2C.com.1password/t/agent.sock
+
+export PYENV_ROOT="$HOME/.pyenv"
+[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
+export PATH="$PYENV_ROOT/shims:$PATH"
+# Lazy-load pyenv: full init deferred until first pyenv invocation
+pyenv() {
+  unfunction pyenv
+  eval "$(command pyenv init - zsh)"
+  pyenv "$@"
+}
+
+### Jujutsu ###
+alias ljj="lazyjj"
+# Cache jj completion (regenerate on version change)
+_jj_comp_cache="$HOME/.cache/jj/completion.zsh"
+if [[ ! -f "$_jj_comp_cache" ]] || [[ "$(jj --version)" != "$(head -1 "$_jj_comp_cache" | sed 's/^# //')" ]]; then
+  mkdir -p "${_jj_comp_cache:h}"
+  { echo "# $(jj --version)"; jj util completion zsh } > "$_jj_comp_cache"
+fi
+source "$_jj_comp_cache"
+
+
+### Claude ###
+alias cc="claude"
+
+# cmux
+source "$HOME/.cmux/cmux.sh"
+
+### Yazi ###
+function y() {
+  local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
+  yazi "$@" --cwd-file="$tmp"
+  if cwd="$(command cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
+    builtin cd -- "$cwd"
+  fi
+  rm -f -- "$tmp"
+}
+
+### Zellij ###
+if [[ -z "$ZELLIJ" ]]; then
+  zellij attach -c
+fi
+alias zdev="zellij --layout dev"
+alias cc4="zellij --layout quad"
+
+### fzf (additional) ###
+export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+export FZF_ALT_C_COMMAND='fd --type d --hidden --follow --exclude .git'
+# Catppuccin Mocha theme for fzf
+export FZF_DEFAULT_OPTS=" \
+--color=bg+:#313244,bg:#1e1e2e,spinner:#f5e0dc,hl:#f38ba8 \
+--color=fg:#cdd6f4,header:#f38ba8,info:#cba6f7,pointer:#f5e0dc \
+--color=marker:#b4befe,fg+:#cdd6f4,prompt:#cba6f7,hl+:#f38ba8 \
+--color=selected-bg:#45475a"
+alias ff='fzf --preview "bat --color=always --style=numbers --line-range=:500 {}"'
+
+### zoxide ###
+eval "$(zoxide init zsh)"
+
+### mise (Java/JDK and other runtimes) ###
+# NOTE: pyenv と異なり lazy-load しない — chpwd フックでディレクトリ毎に
+#       ランタイムを自動切替するため eager activation が必須
+eval "$(mise activate zsh)"
+
+### direnv ###
+eval "$(direnv hook zsh)"
+
+### worktrunk ###
+export WORKTRUNK_CONFIG_PATH="$HOME/.config/worktrunk/config.toml"
+eval "$(wt config shell init zsh)"
+# Subcommand aliases: wt sw/ls/rm
+functions[__wt_orig]="$functions[wt]"
+wt() {
+  case "$1" in
+    sw) shift; __wt_orig switch "$@" ;;
+    ls) shift; __wt_orig list "$@" ;;
+    rm) shift; __wt_orig remove "$@" ;;
+    *)  __wt_orig "$@" ;;
+  esac
+}
+
+# Machine-local overrides (not tracked)
+[[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
+

@@ -1,0 +1,6 @@
+[user]
+	name = {{ onepasswordRead "op://Personal/Git Identity Personal/name" }}
+	email = {{ onepasswordRead "op://Personal/Git Identity Personal/email" }}
+	signingkey = {{ onepasswordRead "op://Personal/Git Identity Personal/signingkey" }}
+[url "git@github-personal:"]
+	insteadOf = git@github.com:

@@ -1,0 +1,90 @@
+# Language servers
+[language-server.pyright]
+command = "pyright-langserver"
+args = ["--stdio"]
+
+[language-server.ruff]
+command = "ruff"
+args = ["server"]
+
+[language-server.rust-analyzer.config]
+check.command = "clippy"
+
+# Python
+[[language]]
+name = "python"
+language-servers = ["pyright", "ruff"]
+formatter = { command = "ruff", args = ["format", "-"] }
+auto-format = true
+
+# Rust
+[[language]]
+name = "rust"
+auto-format = true
+
+# TypeScript
+[[language]]
+name = "typescript"
+auto-format = true
+formatter = { command = "npx", args = ["prettier", "--parser", "typescript"] }
+
+# JavaScript
+[[language]]
+name = "javascript"
+auto-format = true
+formatter = { command = "npx", args = ["prettier", "--parser", "babel"] }
+
+# TSX
+[[language]]
+name = "tsx"
+auto-format = true
+formatter = { command = "npx", args = ["prettier", "--parser", "typescript"] }
+
+# Lua
+[[language]]
+name = "lua"
+auto-format = true
+formatter = { command = "stylua", args = ["-"] }
+
+# Terraform HCL
+[[language]]
+name = "hcl"
+auto-format = true
+formatter = { command = "terraform", args = ["fmt", "-"] }
+
+# Terraform tfvars
+[[language]]
+name = "tfvars"
+auto-format = true
+formatter = { command = "terraform", args = ["fmt", "-"] }
+
+# TOML
+[[language]]
+name = "toml"
+auto-format = true
+formatter = { command = "taplo", args = ["fmt", "-"] }
+
+# YAML
+[[language]]
+name = "yaml"
+auto-format = true
+formatter = { command = "npx", args = ["prettier", "--parser", "yaml"] }
+
+# Markdown
+[[language]]
+name = "markdown"
+auto-format = false
+formatter = { command = "npx", args = ["prettier", "--parser", "markdown"] }
+language-servers = ["marksman"]
+
+# JSON
+[[language]]
+name = "json"
+auto-format = true
+formatter = { command = "npx", args = ["prettier", "--parser", "json"] }
+
+# JSONC
+[[language]]
+name = "jsonc"
+auto-format = true
+formatter = { command = "npx", args = ["prettier", "--parser", "json"] }

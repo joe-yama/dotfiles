@@ -1,0 +1,23 @@
+# Default: work identity
+[user]
+name = "{{ onepasswordRead "op://work/Git Identity TMC/name" }}"
+email = "{{ onepasswordRead "op://work/Git Identity TMC/email" }}"
+
+[ui]
+default-command = "status"
+pager = "delta"
+
+[ui.diff]
+tool = ["delta", "--color-only"]
+
+# Personal repos: ~/repo/github-personal/joe-yama/
+[[--scope]]
+--when.repositories = ["~/repo/github-personal/joe-yama"]
+user.name = "{{ onepasswordRead "op://Personal/Git Identity Personal/name" }}"
+user.email = "{{ onepasswordRead "op://Personal/Git Identity Personal/email" }}"
+
+# Personal repos: ~/repo/github.com/joe-yama/
+[[--scope]]
+--when.repositories = ["~/repo/github.com/joe-yama"]
+user.name = "{{ onepasswordRead "op://Personal/Git Identity Personal/name" }}"
+user.email = "{{ onepasswordRead "op://Personal/Git Identity Personal/email" }}"
