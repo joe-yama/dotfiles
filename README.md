@@ -54,7 +54,9 @@ chezmoi + 1Password CLI で管理する macOS 設定ファイル群。シェル�
 
 | ツール | 用途 | 設定ファイル |
 |--------|------|-------------|
+| **[mise](https://mise.jdx.dev/)** | ランタイム・ツールバージョン管理（言語・CLIツールの統合バージョニング） | `dot_config/mise/config.toml` |
 | **[Worktrunk](https://github.com/nicois/worktrunk)** | Git worktree ベースのブランチ管理。Claude Code (haiku) によるコミットメッセージ自動生成 | `dot_config/worktrunk/config.toml` |
+| **[OpenCode](https://github.com/sst/opencode)** | ターミナルベースの AI コーディングエージェント CLI | `dot_config/opencode/opencode.json` |
 
 ### エディタ
 
@@ -113,7 +115,7 @@ chezmoi のソースディレクトリ。ファイル名のプレフィックス
 | `dot_gitconfig.local.tmpl` | `~/.gitconfig.local` | Work identity (1Password) |
 | `dot_gitconfig-personal.tmpl` | `~/.gitconfig-personal` | Personal identity (1Password) |
 | `private_dot_ssh/` | `~/.ssh/` | SSH config (dir 0700, `private_` files 0600) |
-| `dot_config/` | `~/.config/` | ghostty, aerospace, borders, sketchybar, jj, gh, yazi, helix, worktrunk |
+| `dot_config/` | `~/.config/` | ghostty, aerospace, borders, sketchybar, jj, gh, yazi, helix, mise, worktrunk, opencode |
 | `dot_config/zellij/` | `~/.config/zellij/` | Zellij config + layouts (`default.kdl`, `dev.kdl`, `quad.kdl`) |
 | `dot_config/jj/config.toml.tmpl` | `~/.config/jj/config.toml` | jj identity (1Password) |
 | `dot_claude/` | `~/.claude/` | Claude Code settings + env |
@@ -123,6 +125,8 @@ chezmoi のソースディレクトリ。ファイル名のプレフィックス
 | `run_once_macos-defaults.sh` | (run script) | macOS defaults (run once) |
 | `run_onchange_brew-bundle.sh.tmpl` | (run script) | brew bundle (on Brewfile change) |
 | `run_onchange_after_claude-mcp.sh.tmpl` | (run script) | Claude MCP servers sync (on settings.json change) |
+| `run_onchange_after_install-ccusage.sh` | (run script) | ccusage (Claude Code 使用量分析) インストール |
+| `run_onchange_after_build-claude-icon-font.sh.tmpl` | (run script) | SketchyBar 用 Claude アイコンフォント生成 |
 | `run_onchange_zellij-plugins.sh` | (run script) | Zellij plugin download |
 
 ## Secrets Management
