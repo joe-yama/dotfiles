@@ -6,7 +6,7 @@ zstyle ':omz:update' mode auto      # update automatically without asking
 # Skip compaudit security check for faster compinit
 ZSH_DISABLE_COMPFIX=true
 # Docker CLI completions (fpath must be added before OMZ's compinit)
-fpath=(/Users/user/.docker/completions $fpath)
+fpath=(${HOME}/.docker/completions $fpath)
 plugins=(git aliases copypath history docker brew zsh-completions zsh-autosuggestions zsh-syntax-highlighting eza fzf tldr aws terraform)
 source $ZSH/oh-my-zsh.sh
 
@@ -113,7 +113,7 @@ source "$_jj_comp_cache"
 alias cc="claude"
 
 # cmux
-source "$HOME/.cmux/cmux.sh"
+[[ -f "$HOME/.cmux/cmux.sh" ]] && source "$HOME/.cmux/cmux.sh"
 
 ### Yazi ###
 function y() {

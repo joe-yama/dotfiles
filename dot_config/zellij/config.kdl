@@ -9,15 +9,11 @@ plugins {
         watch_reaction "normal"
         watch_interval "1.0"
     }
-    new-tab-right location="file:~/.config/zellij/plugins/zellij-new-tab-next-to-current.wasm" {
-        auto true
-    }
 }
 
 load_plugins {
     attention
     autolock
-    new-tab-right
 }
 
 default_layout "default"
@@ -29,6 +25,8 @@ support_kitty_keyboard_protocol false
 keybinds clear-defaults=true {
   shared {
     bind "Ctrl space" { SwitchToMode "pane"; }
+    bind "Ctrl o" { Detach; }
+    bind "Ctrl q" { Quit; }
   }
   pane {
     // ペイン操作

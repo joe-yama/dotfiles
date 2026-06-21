@@ -126,7 +126,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/user/.config/zellij/plugins/zellaude-hook.sh",
+            "command": "$HOME/.config/zellij/plugins/zellaude-hook.sh",
             "timeout": 5,
             "async": true
           }
@@ -148,7 +148,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/user/.config/zellij/plugins/zellaude-hook.sh",
+            "command": "$HOME/.config/zellij/plugins/zellaude-hook.sh",
             "timeout": 5,
             "async": true
           }
@@ -160,7 +160,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/user/.config/zellij/plugins/zellaude-hook.sh",
+            "command": "$HOME/.config/zellij/plugins/zellaude-hook.sh",
             "timeout": 5,
             "async": true
           }
@@ -172,7 +172,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/user/.config/zellij/plugins/zellaude-hook.sh",
+            "command": "$HOME/.config/zellij/plugins/zellaude-hook.sh",
             "timeout": 5,
             "async": true
           }
@@ -184,7 +184,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/user/.config/zellij/plugins/zellaude-hook.sh",
+            "command": "$HOME/.config/zellij/plugins/zellaude-hook.sh",
             "timeout": 5,
             "async": true
           }
@@ -196,7 +196,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/user/.config/zellij/plugins/zellaude-hook.sh",
+            "command": "$HOME/.config/zellij/plugins/zellaude-hook.sh",
             "timeout": 5,
             "async": true
           }
@@ -208,7 +208,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/user/.config/zellij/plugins/zellaude-hook.sh",
+            "command": "$HOME/.config/zellij/plugins/zellaude-hook.sh",
             "timeout": 5,
             "async": true
           }
@@ -220,7 +220,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/user/.config/zellij/plugins/zellaude-hook.sh",
+            "command": "$HOME/.config/zellij/plugins/zellaude-hook.sh",
             "timeout": 5,
             "async": true
           }
@@ -232,7 +232,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/user/.config/zellij/plugins/zellaude-hook.sh",
+            "command": "$HOME/.config/zellij/plugins/zellaude-hook.sh",
             "timeout": 5,
             "async": true
           }
@@ -244,7 +244,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/user/.config/zellij/plugins/zellaude-hook.sh",
+            "command": "$HOME/.config/zellij/plugins/zellaude-hook.sh",
             "timeout": 5,
             "async": true
           }
