@@ -22,6 +22,8 @@ load_plugins {
 
 default_layout "default"
 show_startup_tips false
+// 常時新規セッション運用のため、終了後のセッション保存（resurrect 用）は無効化する。
+session_serialization false
 support_kitty_keyboard_protocol false
 
 keybinds clear-defaults=true {

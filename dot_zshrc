@@ -126,8 +126,10 @@ function y() {
 }
 
 ### Zellij ###
+# 起動のたびに新規セッションを作成する（既存セッションへ自動アタッチしない）。
+# Zed のターミナルが既存セッションに吸い込まれる問題への対処。
 if [[ -z "$ZELLIJ" ]]; then
-  zellij attach -c
+  zellij
 fi
 alias zdev="zellij --layout dev"
 alias cc4="zellij --layout quad"
