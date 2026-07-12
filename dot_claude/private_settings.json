@@ -1,9 +1,5 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "statusLine": {
-    "type": "command",
-    "command": "~/.claude/statusline-command.sh"
-  },
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "MCP_TIMEOUT": "120000"
@@ -202,6 +198,10 @@
       }
     ]
   },
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline-command.sh"
+  },
   "enabledPlugins": {
     "skill-creator@claude-plugins-official": true,
     "superpowers@claude-plugins-official": true,
@@ -223,6 +223,7 @@
   },
   "language": "japanese",
   "effortLevel": "high",
+  "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
   "verbose": true,
   "skipAutoPermissionPrompt": true,
@@ -230,7 +231,10 @@
     "atlassian": {
       "type": "stdio",
       "command": "sh",
-      "args": ["-c", "op run --env-file ~/.claude/.env -- uvx mcp-atlassian"]
+      "args": [
+        "-c",
+        "op run --env-file ~/.claude/.env -- uvx mcp-atlassian"
+      ]
     },
     "sonarqube": {
       "type": "stdio",
@@ -252,6 +256,5 @@
         "https://aws-mcp.us-east-1.api.aws/mcp"
       ]
     }
-  },
-  "tui": "fullscreen"
+  }
 }
