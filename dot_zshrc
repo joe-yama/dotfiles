@@ -126,13 +126,25 @@ function y() {
 }
 
 ### Zellij ###
-# 起動のたびに新規セッションを作成する（既存セッションへ自動アタッチしない）。
-# Zed のターミナルが既存セッションに吸い込まれる問題への対処。
-if [[ -z "$ZELLIJ" ]]; then
-  zellij
-fi
 alias zdev="zellij --layout dev"
 alias cc4="zellij --layout quad"
+
+# zja - attach to a zellij session selected interactively (frepo スタイル)
+# SESSION / CREATED / STATUS の3列に整形（CREATED は token 数が可変なので
+# tab 区切り→column -t で揃える）。STATUS は (current) / (EXITED - ...) を表示。
+# zellij CLI で取れるのはこの3情報のみ（cwd・タブ数等は実行中セッション内部にしか無い）。
+# 注: zellij 内からは「セッション内からのアタッチ不可」エラーになるため、
+#     基本は zellij の外で使う。
+zja() {
+  local session=$(
+    { printf 'SESSION\tCREATED\tSTATUS\n'
+      zellij list-sessions --no-formatting \
+        | sed -E 's/^([^ ]+) \[Created (.+) ago\] ?(.*)$/\1\t\2\t\3/'
+    } | column -t -s $'\t' \
+      | fzf -1 +m --header-lines=1 --prompt='session> ' \
+      | awk '{print $1}'
+  ) && [[ -n "$session" ]] && zellij attach "$session"
+}
 
 ### fzf (additional) ###
 export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'

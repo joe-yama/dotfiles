@@ -114,6 +114,18 @@ keybinds clear-defaults=true {
     bind "9" { GoToTab 9; SwitchToMode "normal"; }
     bind "r" { SwitchToMode "renametab"; TabNameInput 0; }
 
+    // セッション操作
+    bind "D" { Detach; }
+    // built-in の session-manager（DL不要）。セッション切替・新規作成に使う。
+    // 注: session_serialization false のため resurrect（終了済みセッション復活）は無効。
+    bind "S" {
+      LaunchOrFocusPlugin "session-manager" {
+        floating true
+        move_to_focused_tab true
+      }
+      SwitchToMode "normal"
+    }
+
     bind "esc" { SwitchToMode "normal"; }
   }
   renametab {
