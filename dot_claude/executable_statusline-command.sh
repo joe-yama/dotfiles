@@ -1,6 +1,6 @@
 #!/bin/sh
 # Claude Code statusLine (最大3行表示。文脈で2〜3行目の内容が変化)
-# 1行目: モデル名 / 消費トークン数(K単位) / コンテキスト残量% / セッション変更行数(+追加/-削除。Claudeが編集した行数でありgit diffではない)
+# 1行目: モデル名 / reasoning effort / 消費トークン数(K単位) / コンテキスト消費%(カウントアップ) / セッション変更行数(+追加/-削除。Claudeが編集した行数でありgit diffではない)
 # 2行目(git内のみ): 📦 リポジトリ名 / 🌿 ブランチ名(+dirty ✗ / upstreamとの ahead↑・behind↓)
 # 3行目: worktree内なら 🌳 worktree名(リポ名接頭辞は除去)、git外なら 📁 フォルダ名(fish風短縮、$HOMEは~)
 #        通常のgitチェックアウトでは3行目は出さない(フォルダ名は冗長なため)
@@ -84,31 +84,22 @@ if [ -n "$cwd" ]; then
   fi
 fi
 
-# 消費トークン数(K単位、取得できる場合のみ)
-# total_input_tokens = input + cache_creation + cache_read の合計。remaining_percentage の算出分子と同一。
+# 消費トークン数(K単位、取得できる場合のみ)。v2.1.132+ は累積ではなく現在のコンテキスト使用量。
 tokens_k=$(echo "$input" | jq -r '(.context_window.total_input_tokens // empty) | (./1000)' 2>/dev/null)
 tok=""
 if [ -n "$tokens_k" ]; then
   tok=$(printf "%.1fK" "$tokens_k" 2>/dev/null)
 fi
 
-# コンテキスト残量%(取得できる場合のみ)
-remaining=$(echo "$input" | jq -r '.context_window.remaining_percentage // empty')
+# コンテキスト消費%(used_percentage。消費が増えるほど上がる=カウントアップ。取得できる場合のみ)
+used=$(echo "$input" | jq -r '.context_window.used_percentage // empty')
 ctx=""
-if [ -n "$remaining" ]; then
-  ctx=$(printf "%.0f" "$remaining" 2>/dev/null)
+if [ -n "$used" ]; then
+  ctx=$(printf "%.0f" "$used" 2>/dev/null)
 fi
 
-# 消費トークン数と残量%をまとめる(例: "45.2K 73% left")
-ctxpart=""
-[ -n "$tok" ] && ctxpart="$tok"
-if [ -n "$ctx" ]; then
-  if [ -n "$ctxpart" ]; then
-    ctxpart="${ctxpart} ${ctx}% left"
-  else
-    ctxpart="${ctx}% left"
-  fi
-fi
+# reasoning effort(effort対応モデルのみ存在。/effort 変更もライブ反映。low/medium/high/xhigh/max)
+effort=$(echo "$input" | jq -r '.effort.level // empty')
 
 # セッション変更行数(Claudeが編集した行数。git diff の作業ツリー差分ではない)
 added=$(echo "$input" | jq -r '.cost.total_lines_added // 0')
@@ -119,16 +110,34 @@ RESET=$(printf '\033[0m')
 BOLD=$(printf '\033[1m')
 DIM=$(printf '\033[2m')
 CYAN=$(printf '\033[36m')
+MAGENTA=$(printf '\033[35m')
 GREEN=$(printf '\033[1;32m')
 BLUE=$(printf '\033[1;34m')
 RED=$(printf '\033[31m')
 YELLOW=$(printf '\033[33m')
 
-# --- 1行目: モデル名 / トークン・残量% / セッション変更行数 ---
+# --- 1行目: モデル名 [effort] / 消費トークン・消費% / セッション変更行数 ---
 line1="${BOLD}${model}${RESET}"
-if [ -n "$ctxpart" ]; then
-  line1="${line1} ${DIM}${ctxpart}${RESET}"
+[ -n "$effort" ] && line1="${line1} ${BOLD}${MAGENTA}${effort}${RESET}"
+
+# 消費トークン(補助情報なので控えめDIM)+ 消費%(消費増で緑→黄→赤・太字で視認性UP)
+ctxpart=""
+[ -n "$tok" ] && ctxpart="${DIM}${tok}${RESET}"
+if [ -n "$ctx" ]; then
+  pctcolor="$GREEN"
+  if [ "$ctx" -ge 80 ] 2>/dev/null; then
+    pctcolor="$RED"
+  elif [ "$ctx" -ge 50 ] 2>/dev/null; then
+    pctcolor="$YELLOW"
+  fi
+  pctseg="${BOLD}${pctcolor}${ctx}%${RESET}"
+  if [ -n "$ctxpart" ]; then
+    ctxpart="${ctxpart} ${pctseg}"
+  else
+    ctxpart="$pctseg"
+  fi
 fi
+[ -n "$ctxpart" ] && line1="${line1} ${ctxpart}"
 diffpart=""
 if [ "$added" -gt 0 ] 2>/dev/null; then
   diffpart="${GREEN}+${added}${RESET}"
