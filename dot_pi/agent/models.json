@@ -1,0 +1,23 @@
+{
+  "providers": {
+    "ollama": {
+      "baseUrl": "http://localhost:11434/v1",
+      "api": "openai-completions",
+      "apiKey": "ollama",
+      "models": [
+        { "id": "qwen3.6:35b-a3b-coding-mxfp8", "name": "Qwen3.6 35B Coding (local)" },
+        { "id": "qwen3.6:35b-mlx", "name": "Qwen3.6 35B MLX (local)" }
+      ]
+    },
+    "openrouter": {
+      "baseUrl": "https://openrouter.ai/api/v1",
+      "api": "openai-completions",
+      "apiKey": "!op read 'op://Personal/Openrouter/default-api-key'",
+      "models": [
+        { "id": "poolside/laguna-m.1:free", "name": "Laguna M.1 (free)" },
+        { "id": "cohere/north-mini-code:free", "name": "North Mini Code (free)" },
+        { "id": "poolside/laguna-xs-2.1:free", "name": "Laguna XS 2.1 (free)" }
+      ]
+    }
+  }
+}

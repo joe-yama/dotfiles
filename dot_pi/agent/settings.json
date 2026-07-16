@@ -1,0 +1,13 @@
+{
+  "defaultProvider": "ollama",
+  "defaultModel": "qwen3.6:35b-a3b-coding-mxfp8",
+  "defaultThinkingLevel": "medium",
+  "theme": "dark",
+  "externalEditor": "hx",
+  "defaultProjectTrust": "ask",
+  "steeringMode": "one-at-a-time",
+  "followUpMode": "one-at-a-time",
+  "transport": "auto",
+  "enableInstallTelemetry": false,
+  "enableAnalytics": false
+}
