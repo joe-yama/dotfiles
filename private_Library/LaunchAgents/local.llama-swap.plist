@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>local.llama-swap</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/bin/zsh</string>
+		<string>-c</string>
+		<!-- .zshrc.local: 社内プロキシ環境の proxy 環境変数を上流サーバー
+		     (vllm-mlx / llama-server) の HF ダウンロードに引き継ぐ -->
+		<string>[ -f "$HOME/.zshrc.local" ] &amp;&amp; source "$HOME/.zshrc.local"; exec /opt/homebrew/bin/llama-swap --config "$HOME/.config/llama-swap/config.yaml" --listen 127.0.0.1:8080</string>
+	</array>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>PATH</key>
+		<string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+	</dict>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<true/>
+	<key>StandardOutPath</key>
+	<string>/opt/homebrew/var/log/llama-swap.log</string>
+	<key>StandardErrorPath</key>
+	<string>/opt/homebrew/var/log/llama-swap.log</string>
+	<key>WorkingDirectory</key>
+	<string>/opt/homebrew/var</string>
+</dict>
+</plist>

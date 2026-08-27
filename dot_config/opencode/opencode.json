@@ -1,23 +1,51 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "provider": {
-    "mlx-lm": {
+    "local-llm": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "MLX LM (local)",
+      "name": "Local LLM (MacBook Pro via Tailscale)",
       "options": {
-        "baseURL": "http://127.0.0.1:8080/v1"
+        "baseURL": "https://josukes-macbook-pro.tail97ab8.ts.net/v1"
       },
       "models": {
-        "mlx-community/Qwen3.6-35B-A3B-4bit": {
-          "name": "Qwen3.6-35B-A3B (MLX 4bit, thinking)",
+        "qwen38-27b": {
+          "name": "Qwen 3.8-27B (GGUF Q8 + MTP)",
           "limit": {
-            "context": 65536,
-            "output": 16384
+            "context": 131072,
+            "output": 32768
+          }
+        },
+        "qwen38-27b-mlx": {
+          "name": "Qwen 3.8-27B (MLX 8bit, vision)",
+          "limit": {
+            "context": 131072,
+            "output": 32768
+          }
+        },
+        "qwen38-27b-fast": {
+          "name": "Qwen 3.8-27B (MLX 4bit, fast)",
+          "limit": {
+            "context": 131072,
+            "output": 32768
+          }
+        },
+        "hermes-43": {
+          "name": "Hermes 4.3-36B (MLX 6bit)",
+          "limit": {
+            "context": 131072,
+            "output": 32768
+          }
+        },
+        "qwen38-abliterated": {
+          "name": "Qwen 3.8-27B abliterated (GGUF Q8)",
+          "limit": {
+            "context": 131072,
+            "output": 32768
           }
         }
       }
     }
   },
-  "model": "mlx-lm/mlx-community/Qwen3.6-35B-A3B-4bit",
-  "small_model": "mlx-lm/mlx-community/Qwen3.6-35B-A3B-4bit"
+  "model": "local-llm/qwen38-27b",
+  "small_model": "local-llm/qwen38-27b-fast"
 }

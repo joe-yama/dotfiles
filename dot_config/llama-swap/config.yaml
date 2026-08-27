@@ -1,0 +1,93 @@
+# llama-swap: ローカルLLMエンドポイントのモデルレジストリ(chezmoi管理)
+#
+# モデル入れ替え手順:
+#   1. このファイル(chezmoiソース)を編集
+#   2. chezmoi apply ~/.config/llama-swap/config.yaml
+#   3. launchctl kickstart -k gui/$UID/local.llama-swap  (設定再読込)
+#
+# リクエストの model 名に応じて llama-swap が上流サーバーを自動起動・スワップする。
+# バックエンドは MLX 優先 (vllm-mlx)、GGUF は llama.cpp (llama-server)。
+
+healthCheckTimeout: 900 # 大型モデルの初回ロード(HFダウンロード含む)を許容
+
+macros:
+  vllm_mlx: /Users/joe/.local/bin/vllm-mlx
+  llama_server: /opt/homebrew/bin/llama-server
+
+models:
+  # ── コーディング主力 + 日本語チャット兼用 ──────────────────────
+  # Qwen 3.8-27B (dense, 262k ctx, Apache 2.0)。GGUF Q8_0 + MTP投機デコード。
+  # 2026-08-27実測: 21.0 tok/s (draft受理66%) vs MLX 8bit 16.0 tok/s → GGUF採用。
+  # 注: 過剰思考癖があるためクライアント側で reasoning effort low 推奨
+  qwen38-27b:
+    cmd: |
+      ${llama_server}
+      --port ${PORT}
+      -hf unsloth/Qwen3.8-27B-GGUF:Q8_0
+      --jinja
+      -c 131072
+      --cache-type-k q8_0
+      --cache-type-v q8_0
+      --spec-type draft-mtp
+    ttl: 1800
+    aliases:
+      - qwen38
+      - default
+
+  # MLX 8bit 比較枠 (vision入力が必要な場合はこちら)
+  qwen38-27b-mlx:
+    cmd: |
+      ${vllm_mlx} serve mlx-community/Qwen3.8-27B-8bit
+      --port ${PORT}
+      --continuous-batching
+      --reasoning-parser qwen3
+    useModelName: mlx-community/Qwen3.8-27B-8bit
+    ttl: 1800
+
+  # 速度重視枠 (MLX 4bit ~17GB)
+  qwen38-27b-fast:
+    cmd: |
+      ${vllm_mlx} serve mlx-community/Qwen3.8-27B-4bit
+      --port ${PORT}
+      --continuous-batching
+      --reasoning-parser qwen3
+    useModelName: mlx-community/Qwen3.8-27B-4bit
+    ttl: 1800
+
+  # ── 無検閲: ニュートラル系 ──────────────────────────────────
+  # Hermes 4.3-36B (ByteDance Seed 36B ベース, 非abliteratedでRefusalBench SOTA,
+  # 512k ctx)。8bit MLX ≒ 38GB (6bit repoはアクセス不可だったため8bitを採用)
+  hermes-43:
+    cmd: |
+      ${vllm_mlx} serve alexcovo/Hermes-4.3-36B-mlx-8Bit
+      --port ${PORT}
+      --continuous-batching
+    useModelName: alexcovo/Hermes-4.3-36B-mlx-8Bit
+    ttl: 1800
+    aliases:
+      - hermes
+
+  # ── 無検閲: 拒否ゼロ系 (abliterated) ────────────────────────
+  # OrcaRouter abliterated 版の公開ミラー。本体 Q8_0 (~29GB) + MTPドラフトヘッド
+  # (別ファイル 3.2GB) の2ファイル構成。事前取得:
+  #   hf download chimingw/Qwen3.8-27B-Uncensored-OrcaRouter-GGUF \
+  #     "Qwen3.8-27B-Uncensored-OrcaRouter-Q8_0.gguf" \
+  #     "MTP/Qwen3.8-27B-Uncensored-OrcaRouter-MTP-Q8_0.gguf" \
+  #     --local-dir ~/models/qwen38-uncensored
+  # 経緯 (2026-08-27):
+  #  - huihui-ai/...-abliterated-GGUF:Q8_0 → 出力破損 (全プロンプトで"000...")
+  #  - orcarouter/...-Uncensored-GGUF → gated (HF認証必須) で不採用
+  qwen38-abliterated:
+    cmd: |
+      ${llama_server}
+      --port ${PORT}
+      -m /Users/joe/models/qwen38-uncensored/Qwen3.8-27B-Uncensored-OrcaRouter-Q8_0.gguf
+      -md /Users/joe/models/qwen38-uncensored/MTP/Qwen3.8-27B-Uncensored-OrcaRouter-MTP-Q8_0.gguf
+      --jinja
+      -c 131072
+      --cache-type-k q8_0
+      --cache-type-v q8_0
+      --spec-type draft-mtp
+    ttl: 1800
+    aliases:
+      - abliterated
