@@ -1,0 +1,6 @@
+# Hermes Agent 環境変数 — chezmoi管理
+# トークンは apply 時に 1Password から解決される (op signin 必須、忘れると chezmoi がハング)
+# 注: hermes 自身がこのファイルにキーを追記することがある → chezmoi diff で確認して取り込む
+DISCORD_BOT_TOKEN={{ onepasswordRead "op://Personal/Hermes Discord Bot/token" }}
+# ボットに話しかけられるユーザーを本人のみに制限 (このマシンでツール実行できるため必須)
+DISCORD_ALLOWED_USERS=559018546957647873

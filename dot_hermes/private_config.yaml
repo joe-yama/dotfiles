@@ -1,0 +1,25 @@
+# Hermes Agent (Nous Research) — chezmoi管理
+# ローカルのllama-swapエンドポイントに接続する。モデルは llama-swap 側の
+# エイリアス名 (~/.config/llama-swap/config.yaml) を指定。
+# context_length はエンドポイント自動検出(llama-swapは /v1/models/<id> 未実装で404)
+# の代わりに明示指定する。llama-swap側の -c 131072 と揃えること。
+# 注: hermes 自身がこのファイルにキーを追記することがある(_config_version等)。
+# ドリフトしたら chezmoi diff で確認し、有用なら source に取り込むこと。
+model:
+  provider: custom
+  base_url: http://127.0.0.1:8080/v1
+  api_key: local
+  default: qwen38-abliterated
+  context_length: 131072
+  # llama.cpp 経路 (-c 131072) なので vllm-mlx の 32768 上限は無関係。
+  # プロンプト分を残して出力上限は ctx の半分に留める。
+  max_tokens: 65536
+# hermes が書き込むマイグレーション marker。手で書き換えないこと。
+# hermes 更新でこの値が上がったら chezmoi diff → source に取り込む。
+_config_version: 33
+plugins:
+  # Discord ゲートウェイ (bundled plugin)。`hermes plugins enable discord-platform`
+  # 相当。トークン等は ~/.hermes/.env (private_dot_env.tmpl) で設定する。
+  enabled:
+    - platforms/discord
+agent: {}
