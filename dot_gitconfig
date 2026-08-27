@@ -8,6 +8,9 @@
 	path = ~/.gitconfig-personal
 [includeIf "gitdir:~/repo/github.com/joe-yama/"]
 	path = ~/.gitconfig-personal
+# chezmoi のソースディレクトリは ghq 配下 (~/repo/...) にないため個別に指定する
+[includeIf "gitdir:~/dotfiles/"]
+	path = ~/.gitconfig-personal
 [core]
 	autocrlf = false
 	precomposeunicode = true
