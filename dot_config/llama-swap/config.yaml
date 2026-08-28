@@ -54,29 +54,46 @@ models:
     useModelName: mlx-community/Qwen3.8-27B-4bit
     ttl: 1800
 
-  # ── 無検閲: ニュートラル系 ──────────────────────────────────
-  # Hermes 4.3-36B (ByteDance Seed 36B ベース, 非abliteratedでRefusalBench SOTA,
-  # 512k ctx)。8bit MLX ≒ 38GB (6bit repoはアクセス不可だったため8bitを採用)
-  hermes-43:
-    cmd: |
-      ${vllm_mlx} serve alexcovo/Hermes-4.3-36B-mlx-8Bit
-      --port ${PORT}
-      --continuous-batching
-    useModelName: alexcovo/Hermes-4.3-36B-mlx-8Bit
-    ttl: 1800
-    aliases:
-      - hermes
-
   # ── 無検閲: 拒否ゼロ系 (abliterated) ────────────────────────
   # OrcaRouter abliterated 版の公開ミラー。本体 Q8_0 (~29GB) + MTPドラフトヘッド
-  # (別ファイル 3.2GB) の2ファイル構成。事前取得:
-  #   hf download chimingw/Qwen3.8-27B-Uncensored-OrcaRouter-GGUF \
-  #     "Qwen3.8-27B-Uncensored-OrcaRouter-Q8_0.gguf" \
-  #     "MTP/Qwen3.8-27B-Uncensored-OrcaRouter-MTP-Q8_0.gguf" \
-  #     --local-dir ~/models/qwen38-uncensored
+  # (別ファイル 3.2GB) の2ファイル構成。MTPヘッドは Q8_0 のみ公開で本体の量子化
+  # レベルに依らず共用。事前取得 (hf CLI 未導入のため curl):
+  #   cd ~/models/qwen38-uncensored
+  #   curl -L -C - -O https://huggingface.co/chimingw/Qwen3.8-27B-Uncensored-OrcaRouter-GGUF/resolve/main/Qwen3.8-27B-Uncensored-OrcaRouter-Q8_0.gguf
+  #   curl -L -C - --create-dirs -o MTP/Qwen3.8-27B-Uncensored-OrcaRouter-MTP-Q8_0.gguf https://huggingface.co/chimingw/Qwen3.8-27B-Uncensored-OrcaRouter-GGUF/resolve/main/MTP/Qwen3.8-27B-Uncensored-OrcaRouter-MTP-Q8_0.gguf
   # 経緯 (2026-08-27):
   #  - huihui-ai/...-abliterated-GGUF:Q8_0 → 出力破損 (全プロンプトで"000...")
   #  - orcarouter/...-Uncensored-GGUF → gated (HF認証必須) で不採用
+  #  - hermes-43 (Hermes 4.3-36B MLX 8bit, 38GB) → 無検閲枠はこのモデルが
+  #    上位互換 (拒否率 0-6% vs RefusalBench 74.6%) かつ賢く速いため削除
+  #  - Q6_K (22GB) を試したが Q8_0 より遅く却下。同一プロンプト/-c 8192/同一MTP
+  #    ヘッドでの実測 (2026-08-27):
+  #      Q6_K  13.32 tok/s (75.08 ms/tok)  draft受理 0.527
+  #      Q8_0  18.38 tok/s (54.40 ms/tok)  draft受理 0.527
+  #    受理率が同一なので投機デコードは正常。M4 Max (546GB/s) では 27B の
+  #    Q6_K は帯域ではなく逆量子化コストが律速。Q8_0 は int8×スケールで安価だが
+  #    Q6_K は k-quant のスーパーブロック (6bitを ql/qh に分割 + サブブロック毎
+  #    スケール) で ALU が重く、サイズ23%減の利得を食い潰す。128GB機でメモリ
+  #    節約の動機もないため Q8_0 が速度・品質の両面で上位。低ビット化を試すなら
+  #    k-quant 以外 (IQ4_NL 等) でないと同じ壁に当たる可能性が高い。
+  #  - KVキャッシュを q8_0 → f16 (既定) に変更。本モデルは 64層中 full attention が
+  #    4層ごとの16層のみ (残りは linear attention) で KV が小さく、131k ctx でも
+  #    f16 で約 8.4GB (q8_0 比 +4GB)。
+  #    速度影響を実測 (2026-08-27, -c 131072/-np 1/ignore_eos で厳密200トークン
+  #    生成/順序反転2周/90秒クールダウン、順序バランス平均):
+  #                  短文      24kプレフィル後   プレフィル
+  #      f16       21.64        13.35          184.9 tok/s
+  #      q8_0      21.88        13.76          184.4 tok/s
+  #    差は短文 -1.1%、24k -3.0%、プレフィル +0.3%。ただし同一条件内の測定ばらつき
+  #    (熱ダレ由来) が 12-15% あり、ポジション別に見ると差の符号すら反転する
+  #    (24k: 1台目 f16 +1.8% / 2台目 f16 -7.9%)。→ **KV型の速度差はノイズ以下で
+  #    判別不能**。f16 は実質無コストなので品質側に振るのが妥当。full attention が
+  #    1/4しかないアーキテクチャゆえKVトラフィックが小さく差が出にくい。
+  #    3%を確定させるには1条件10回以上+厳密な温度管理が必要。
+  #  - 参考: 24k コンテキスト投入でデコードは約 -38% (21.6→13.4 tok/s)、
+  #    24k のプレフィルに約130秒かかる (185 tok/s)。KV型に依らない。
+  #  - BF16化は非推奨: 公開 BF16 は FP8-derived で情報量が実質 FP8、54GB払って
+  #    速度半減する割に中身が Q8_0 と大差ない。
   qwen38-abliterated:
     cmd: |
       ${llama_server}
@@ -85,8 +102,6 @@ models:
       -md /Users/joe/models/qwen38-uncensored/MTP/Qwen3.8-27B-Uncensored-OrcaRouter-MTP-Q8_0.gguf
       --jinja
       -c 131072
-      --cache-type-k q8_0
-      --cache-type-v q8_0
       --spec-type draft-mtp
     ttl: 1800
     aliases:
