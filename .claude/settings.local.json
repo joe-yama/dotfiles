@@ -3,5 +3,9 @@
     "allow": [
       "Bash(JJ_EDITOR=true jj describe -m ' *)"
     ]
+  },
+  "sandbox": {
+    "enabled": false,
+    "autoAllowBashIfSandboxed": false
   }
 }

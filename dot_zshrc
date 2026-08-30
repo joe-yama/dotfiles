@@ -85,8 +85,44 @@ alias tree="eza --tree --icons --git"
 
 ### 1Password ###
 
-# aws plugin for 1password
+# SSH agent — 1Password アプリが署名鍵と認証鍵を提供する
 export SSH_AUTH_SOCK=~/Library/Group\ Containers/2BUA8C4S2C.com.1password/t/agent.sock
+
+# Claude Code の MCP サーバー用シークレット。
+# user スコープの MCP サーバーは claude プロセスの環境変数を継承する
+# (認証情報が除去されるのは project .mcp.json / plugin 由来のサーバーのみ)。
+# op inject は 1 回 ~1.3s かかるので解決済みの値を $TMPDIR に 0600 でキャッシュし、
+# 再解決は claude 起動時だけに寄せる。通常のシェル起動はキャッシュを読むだけで op を呼ばない。
+_OP_ENV_TPL="${HOME}/.claude/.env"
+_OP_ENV_CACHE="${TMPDIR%/}/claude-mcp-env"
+_OP_ENV_TTL_MIN=480   # 8h
+
+# source ではなく1行ずつ export する。トークンに $ ` " が含まれても評価されない。
+_op_env_load() {
+  [[ -r $_OP_ENV_CACHE ]] || return 1
+  local line key val
+  while IFS= read -r line; do
+    [[ $line == [A-Za-z_]*=* ]] || continue
+    key=${line%%=*}; val=${line#*=}
+    val=${val#\"}; val=${val%\"}
+    export "$key=$val"
+  done < "$_OP_ENV_CACHE"
+}
+
+_op_env_refresh() {
+  if [[ ! -s $_OP_ENV_CACHE ]] \
+     || [[ -n $(find "$_OP_ENV_CACHE" -mmin +$_OP_ENV_TTL_MIN 2>/dev/null) ]]; then
+    op inject -i "$_OP_ENV_TPL" -o "$_OP_ENV_CACHE" --force >/dev/null \
+      || print -u2 "warning: op inject 失敗 — 1Password アプリのロックを解除してください"
+  fi
+  _op_env_load
+}
+
+# claude 起動時だけ再解決する。op が失敗しても起動自体は止めない。
+claude() { _op_env_refresh; command claude "$@" }
+
+# 対話シェルのみ。キャッシュを読むだけで op は呼ばない (~0ms)。
+[[ -o interactive ]] && _op_env_load
 
 export PYENV_ROOT="$HOME/.pyenv"
 [[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"

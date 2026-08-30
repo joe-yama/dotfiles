@@ -119,7 +119,7 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "fable",
+  "model": "Opus",
   "hooks": {
     "PreToolUse": [
       {
@@ -276,25 +276,9 @@
     }
   },
   "language": "japanese",
-  "effortLevel": "high",
-  "tui": "fullscreen",
-  "skipDangerousModePermissionPrompt": true,
-  "verbose": true,
-  "skipAutoPermissionPrompt": true,
   "sandbox": {
     "enabled": true,
     "allowUnsandboxedCommands": true,
-    "excludedCommands": [
-      "chezmoi",
-      "git",
-      "jj",
-      "gh",
-      "op",
-      "docker",
-      "brew",
-      "make",
-      "aerospace"
-    ],
     "network": {
       "allowedDomains": [
         "github.com",
@@ -310,29 +294,73 @@
     },
     "credentials": {
       "files": [
-        { "path": "~/.ssh", "mode": "deny" },
-        { "path": "~/.aws", "mode": "deny" },
-        { "path": "~/.gnupg", "mode": "deny" },
-        { "path": "~/.claude/.env", "mode": "deny" },
-        { "path": "~/.config/op", "mode": "deny" }
+        {
+          "path": "~/.ssh",
+          "mode": "deny"
+        },
+        {
+          "path": "~/.aws",
+          "mode": "deny"
+        },
+        {
+          "path": "~/.gnupg",
+          "mode": "deny"
+        },
+        {
+          "path": "~/.claude/.env",
+          "mode": "deny"
+        },
+        {
+          "path": "~/.config/op",
+          "mode": "deny"
+        }
       ]
+    },
+    "excludedCommands": [
+      "chezmoi",
+      "git",
+      "jj",
+      "gh",
+      "op",
+      "docker",
+      "brew",
+      "make",
+      "aerospace"
+    ]
+  },
+  "effortLevel": "high",
+  "modelSettings": {
+    "claude-opus-5": {
+      "effortLevel": "xhigh"
     }
   },
+  "tui": "fullscreen",
+  "skipDangerousModePermissionPrompt": true,
+  "verbose": true,
+  "agentPushNotifEnabled": true,
+  "skipAutoPermissionPrompt": true,
   "mcpServers": {
     "atlassian": {
       "type": "stdio",
-      "command": "sh",
+      "command": "uvx",
       "args": [
-        "-c",
-        "op run --env-file ~/.claude/.env -- uvx mcp-atlassian"
+        "mcp-atlassian"
       ]
     },
     "sonarqube": {
       "type": "stdio",
-      "command": "sh",
+      "command": "docker",
       "args": [
-        "-c",
-        "op run --env-file ~/.claude/.env -- docker run --init --pull=always -i --rm -e SONARQUBE_TOKEN -e SONARQUBE_ORG sonarsource/sonarqube-mcp"
+        "run",
+        "--init",
+        "--pull=always",
+        "-i",
+        "--rm",
+        "-e",
+        "SONARQUBE_TOKEN",
+        "-e",
+        "SONARQUBE_ORG",
+        "sonarsource/sonarqube-mcp"
       ]
     },
     "lucid": {

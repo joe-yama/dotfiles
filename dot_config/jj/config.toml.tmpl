@@ -1,7 +1,7 @@
 # Default: work identity
 [user]
-name = "{{ onepasswordRead "op://work/Git Identity TMC/name" }}"
-email = "{{ onepasswordRead "op://work/Git Identity TMC/email" }}"
+name = "{{ .identity.work.name }}"
+email = "{{ .identity.work.email }}"
 
 [ui]
 default-command = "status"
@@ -13,17 +13,17 @@ tool = ["delta", "--color-only"]
 # Personal repos: ~/repo/github-personal/joe-yama/
 [[--scope]]
 --when.repositories = ["~/repo/github-personal/joe-yama"]
-user.name = "{{ onepasswordRead "op://Personal/Git Identity Personal/name" }}"
-user.email = "{{ onepasswordRead "op://Personal/Git Identity Personal/email" }}"
+user.name = "{{ .identity.personal.name }}"
+user.email = "{{ .identity.personal.email }}"
 
 # Personal repos: ~/repo/github.com/joe-yama/
 [[--scope]]
 --when.repositories = ["~/repo/github.com/joe-yama"]
-user.name = "{{ onepasswordRead "op://Personal/Git Identity Personal/name" }}"
-user.email = "{{ onepasswordRead "op://Personal/Git Identity Personal/email" }}"
+user.name = "{{ .identity.personal.name }}"
+user.email = "{{ .identity.personal.email }}"
 
 # chezmoi source directory: ~/dotfiles (outside ghq's ~/repo tree)
 [[--scope]]
 --when.repositories = ["~/dotfiles"]
-user.name = "{{ onepasswordRead "op://Personal/Git Identity Personal/name" }}"
-user.email = "{{ onepasswordRead "op://Personal/Git Identity Personal/email" }}"
+user.name = "{{ .identity.personal.name }}"
+user.email = "{{ .identity.personal.email }}"

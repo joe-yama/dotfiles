@@ -1,4 +1,4 @@
 [user]
-	name = {{ onepasswordRead "op://work/Git Identity TMC/name" }}
-	email = {{ onepasswordRead "op://work/Git Identity TMC/email" }}
-	signingkey = {{ onepasswordRead "op://work/Git Identity TMC/signingkey" }}
+	name = {{ .identity.work.name }}
+	email = {{ .identity.work.email }}
+	signingkey = {{ .identity.work.signingkey }}

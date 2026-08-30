@@ -1,3 +1,17 @@
 [onepassword]
   command = "op"
-  prompt = true
+  # false: 未サインイン時に対話プロンプトでハングせず即エラーにする。
+  # アプリ統合 (Touch ID) が有効なら認証は op 側が処理するので prompt は不要。
+  prompt = false
+
+# identity 値は chezmoi init 時に一度だけ 1Password から解決し、
+# ~/.config/chezmoi/chezmoi.toml に焼く。以後 chezmoi apply は op を呼ばない。
+[data.identity.work]
+  name       = "{{ onepasswordRead "op://work/Git Identity TMC/name" }}"
+  email      = "{{ onepasswordRead "op://work/Git Identity TMC/email" }}"
+  signingkey = "{{ onepasswordRead "op://work/Git Identity TMC/signingkey" }}"
+
+[data.identity.personal]
+  name       = "{{ onepasswordRead "op://Personal/Git Identity Personal/name" }}"
+  email      = "{{ onepasswordRead "op://Personal/Git Identity Personal/email" }}"
+  signingkey = "{{ onepasswordRead "op://Personal/Git Identity Personal/signingkey" }}"

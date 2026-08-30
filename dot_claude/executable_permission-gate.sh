@@ -1,5 +1,5 @@
 #!/bin/bash
-# PreToolUse permission gate — gh api のみ対象。
+# PreToolUse permission gate — gh api と op を対象。
 # allow: 読み取り (GET) / ask: 変更系 / 出力なし: 通常フローに defer
 set -euo pipefail
 
@@ -30,5 +30,18 @@ case "$cmd" in
       decide allow "gh api read-only (GET)"
     fi
     ;;
+  'op account list'|'op whoami'|'op --version')
+    decide allow "op 状態確認 — 秘密を出力しない"
+    ;;
+  'op inject -i '"$HOME"'/.claude/.env -o '*)
+    # 入力を既知の MCP env テンプレートに固定し、出力先が stdout 系なら許可しない。
+    # (-i に任意ファイルを渡せると任意の op:// 参照を解決できてしまう)
+    case "$cmd" in
+      *'/dev/std'*|*'/dev/fd'*|*'/dev/tty'*) exit 0 ;;
+    esac
+    decide allow "op inject: MCP env テンプレートをファイルへ解決"
+    ;;
+  # op read / op item / op document / op run は秘密を stdout に出す、
+  # または任意コマンドを実行できるため defer (通常の承認フロー) に落とす。
 esac
 exit 0

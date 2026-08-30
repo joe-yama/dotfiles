@@ -130,14 +130,36 @@ chezmoi のソースディレクトリ。ファイル名のプレフィックス
 
 ## Secrets Management
 
-シークレットは chezmoi テンプレート + 1Password CLI で管理。`.tmpl` ファイル内で `onepasswordRead` 関数を使用：
+1Password CLI が唯一の真実源だが、`op` を呼ぶタイミングを絞って日常の操作が認証待ちで止まらないようにしている。
+
+### 1. identity 値（git / jj の name・email・signingkey）
+
+`.chezmoi.toml.tmpl` の `[data]` で解決し、`~/.config/chezmoi/chezmoi.toml` に焼く。**`chezmoi init` のときだけ** `op` が走り、以後の `chezmoi apply` は 1Password を一切呼ばない。
 
 ```
-# テンプレート内の記法
-{{ onepasswordRead "op://work/Git Identity TMC/name" }}
+# .chezmoi.toml.tmpl（chezmoi init 時のみ評価される）
+[data.identity.work]
+  email = "{{ onepasswordRead "op://work/Git Identity TMC/email" }}"
+
+# 参照側テンプレート（op を呼ばない）
+email = {{ .identity.work.email }}
 ```
 
-`chezmoi apply` 時に 1Password から値が自動解決される。別途 `op inject` を実行する必要はない。
+`.chezmoi.toml.tmpl` を変更したときは `chezmoi apply` ではなく `chezmoi init` を実行する。
+
+### 2. Claude Code の MCP サーバー用トークン
+
+`dot_claude/dot_env` に `op://` 参照だけを書いておき（実値は入らない）、`~/.zshrc` の `_op_env_refresh` が `op inject` で解決して `$TMPDIR/claude-mcp-env`（0600・TTL 8時間）にキャッシュする。`claude` は zsh 関数でラップしてあり、起動時にキャッシュを更新してから本体を呼ぶ。MCP サーバーは user スコープで登録されているため、この環境変数をそのまま継承する。
+
+通常のシェル起動はキャッシュを読むだけで `op` を呼ばないので、新しいターミナルタブが認証で待たされることはない。
+
+### 3. Hermes の Discord トークン
+
+`dot_hermes/private_dot_env.tmpl` のみ `onepasswordRead` を直接使う。`chezmoi apply` 時に実値が `~/.hermes/.env` へ書き出される。
+
+### サインインしていないとき
+
+`[onepassword] prompt = false` にしてあるため、未サインイン時はプロンプトで**ハングせず即エラー**になる。`op signin` してから再実行する。
 
 ## Multi-GitHub Account
 
