@@ -8,6 +8,20 @@
         "baseURL": "https://josukes-macbook-pro.tail97ab8.ts.net/v1"
       },
       "models": {
+        "qwen38-flash-next": {
+          "name": "Qwen 3.8-Flash-Next (GGUF UD-Q3_K_XL, 262K)",
+          "limit": {
+            "context": 262144,
+            "output": 65536
+          }
+        },
+        "qwen38-flash-next-uncensored": {
+          "name": "Qwen 3.8-Flash-Next uncensored (GGUF i1-IQ3_M, 262K)",
+          "limit": {
+            "context": 262144,
+            "output": 65536
+          }
+        },
         "qwen38-27b": {
           "name": "Qwen 3.8-27B (GGUF Q8 + MTP)",
           "limit": {
@@ -29,13 +43,6 @@
             "output": 32768
           }
         },
-        "hermes-43": {
-          "name": "Hermes 4.3-36B (MLX 6bit)",
-          "limit": {
-            "context": 131072,
-            "output": 32768
-          }
-        },
         "qwen38-abliterated": {
           "name": "Qwen 3.8-27B abliterated (GGUF Q8)",
           "limit": {
@@ -46,6 +53,6 @@
       }
     }
   },
-  "model": "local-llm/qwen38-27b",
+  "model": "local-llm/qwen38-flash-next",
   "small_model": "local-llm/qwen38-27b-fast"
 }

@@ -2,18 +2,20 @@
 # ローカルのllama-swapエンドポイントに接続する。モデルは llama-swap 側の
 # エイリアス名 (~/.config/llama-swap/config.yaml) を指定。
 # context_length はエンドポイント自動検出(llama-swapは /v1/models/<id> 未実装で404)
-# の代わりに明示指定する。llama-swap側の -c 131072 と揃えること。
+# の代わりに明示指定する。llama-swap側の -c と揃えること。
 # 注: hermes 自身がこのファイルにキーを追記することがある(_config_version等)。
 # ドリフトしたら chezmoi diff で確認し、有用なら source に取り込むこと。
 model:
   provider: custom
   base_url: http://127.0.0.1:8080/v1
   api_key: local
-  default: qwen38-abliterated
-  context_length: 131072
-  # llama.cpp 経路 (-c 131072) なので vllm-mlx の 32768 上限は無関係。
+  # 2026-08-30: 無検閲枠を Qwen3.8-27B-Uncensored から Flash-Next 版へ移行。
+  # 旧モデルに戻すときは qwen38-abliterated / 131072 / 65536 に戻すこと。
+  default: qwen38-flash-next-uncensored
+  context_length: 262144
+  # llama.cpp 経路 (-c 262144) なので vllm-mlx の 32768 上限は無関係。
   # プロンプト分を残して出力上限は ctx の半分に留める。
-  max_tokens: 65536
+  max_tokens: 131072
 # hermes が書き込むマイグレーション marker。手で書き換えないこと。
 # hermes 更新でこの値が上がったら chezmoi diff → source に取り込む。
 _config_version: 33

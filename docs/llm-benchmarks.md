@@ -7,6 +7,15 @@
 - 計測日: 2026-08-27
 - エンドポイント: llama-swap (127.0.0.1:8080)
 
+> ⚠️ **この表は 2026-08-30 のモデル入れ替え前の値です（未更新）。**
+> 既定が `qwen38-27b` → `qwen38-flash-next` に、無検閲枠が `qwen38-abliterated` →
+> `qwen38-flash-next-uncensored` に移行しましたが、**新2モデルは下記の計測条件で
+> 測っていないため行を追加していません**。`hermes-43` は 2026-08-27 に
+> レジストリから削除済みで、下記の行は履歴として残しているだけです。
+> 参考値として Flash-Next は `-c 4096` / 32トークン生成のアドホック計測で
+> 32.3 tok/s でしたが、条件が違うため下表とは比較できません。
+> 下記「計測条件」の手順で再計測してから表を更新すること。
+
 ## Results
 
 Decode 速度は TTFT を除いた純粋な生成速度（3 回計測の中央値）。
@@ -14,7 +23,7 @@ Decode 速度は TTFT を除いた純粋な生成速度（3 回計測の中央�
 | Alias | Full model name | Backend | Quant | On disk | Decode tok/s | TTFT | Load |
 |-------|-----------------|---------|-------|---------|-------------:|-----:|-----:|
 | `qwen38-27b-fast` | `mlx-community/Qwen3.8-27B-4bit` | vllm-mlx | 4-bit | 15 GB | **29.1** | 0.60 s | 8.9 s |
-| `qwen38-27b` *(default)* | `unsloth/Qwen3.8-27B-GGUF:Q8_0` + MTP draft head | llama.cpp | Q8_0 | 28 GB | **18.3** | 0.19 s | 17.7 s |
+| `qwen38-27b` *(当時の既定)* | `unsloth/Qwen3.8-27B-GGUF:Q8_0` + MTP draft head | llama.cpp | Q8_0 | 28 GB | **18.3** | 0.19 s | 17.7 s |
 | `qwen38-abliterated` | `chimingw/Qwen3.8-27B-Uncensored-OrcaRouter-GGUF` + MTP draft head | llama.cpp | Q8_0 | 30 GB | **17.9** | 0.20 s | 4.3 s |
 | `qwen38-27b-mlx` | `mlx-community/Qwen3.8-27B-8bit` | vllm-mlx | 8-bit | 28 GB | **16.5** | 0.75 s | 10.2 s |
 | `hermes-43` | `alexcovo/Hermes-4.3-36B-mlx-8Bit` | vllm-mlx | 8-bit | 36 GB | **12.5** | 1.10 s | 13.3 s |

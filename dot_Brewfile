@@ -51,7 +51,9 @@ brew "marksman"
 brew "neovim"
 brew "nkf"
 brew "node"
-brew "llama.cpp"
+# Qwen3.8-Flash-Next (arch qwen4exp) は llama.cpp PR #27742 (2026-08-27 マージ)
+# 以降の master でしか読めない。安定版 formula が追いついたら HEAD を外す。
+brew "llama.cpp", args: ["HEAD"]
 brew "opencode"
 brew "pandoc"
 brew "git-delta"
