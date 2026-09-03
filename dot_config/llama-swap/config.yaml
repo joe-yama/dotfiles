@@ -17,6 +17,13 @@
 #    #28123 recurrent state rollback / #28023) がマージされ b10767 に収録。
 #    Homebrew HEAD は別 formula `ggml` の同期待ちでビルドできない (2026-09-03)
 #    ため公式バイナリに切り替えた。qwen4exp は qwen3next とは別アーキ。
+#
+# --override-tensor per_layer_token_embd=CPU について (2026-09-03 見直し):
+#    b10703 以降の llama.cpp は `--lazy-mode auto` が既定で、4GiB 超のテンソルを
+#    mmap の on-demand 読みにする (PLE 28.8GB が対象)。PR #27837 以降は lazy が
+#    -ot / --load-mode より優先されるため、旧来の -ot 退避は no-op。起動ログの
+#    `tensor per_layer_token_embd.weight (size = N MiB) lazy read enabled` と
+#    `Metal model buffer size` (≈ ファイルサイズ − 28.8GB) で確認する。
 
 # 90GB 級モデルの初回ロード(HFダウンロード含む)を許容。
 # llama-swap v251 では model 単位の上書き不可 (config-schema.json で確認済み)
@@ -38,13 +45,15 @@ models:
   # ただし Terminal-Bench 2.1 は 27B 側が優位。ライセンスは Apache 2.0 から
   # Qwen Community License 1.0 に後退している。
   #
-  # PLE (Per-Layer Embeddings) の CPU 退避:
+  # PLE (Per-Layer Embeddings) の GPU 外し:
   #   GGUF を実読みして確定した唯一の巨大テンソルは
   #     per_layer_token_embd.weight = [160, 320001536] IQ4_NL ≈ 28.8GB
   #   (メタデータ: ple.layers=[1] / ngram_size=3 / heads_per_ngram=8
   #    → 16ヘッド × 約2000万語彙 = 320M行 × 160次元 = 51.2B要素)。
-  #   行列積ではなく ggml_get_rows でアクセスするため CPU 側に置いても安い。
-  #   退避後の GPU 常駐は 90.0GB - 28.8GB ≈ 61GB。実用GPUメモリ上限 約96GB に
+  #   行列積ではなく ggml_get_rows でアクセスするため GPU 外に置いても安い。
+  #   llama.cpp 既定の --lazy-mode auto がこのテンソルを on-demand 読みにするので
+  #   明示の --override-tensor は不要 (ファイル冒頭の注記参照)。
+  #   GPU 常駐は 90.0GB - 28.8GB ≈ 61GB。実用GPUメモリ上限 約96GB に
   #   対し KV 込みでも約35GBの余裕がある。
   #   ⚠️ 週次調査に載っていた
   #      --override-tensor "per_layer_token_embd=CPU,ple_ngram_embd=CPU"
@@ -80,7 +89,6 @@ models:
       -hff UD-Q3_K_XL/Qwen3.8-Flash-Next-UD-Q3_K_XL-00001-of-00003.gguf
       --jinja
       -c 262144
-      --override-tensor per_layer_token_embd=CPU
     ttl: 7200
     aliases:
       - flash-next
@@ -132,28 +140,66 @@ models:
   # 本家 orcarouter/Qwen3.8-Flash-Next-Uncensored-GGUF は gated (HF認証必須)
   # で 27B のときと同じ理由で使えないため、非gatedの mradermacher ミラーを
   # 採用する (base_model: orcarouter/Qwen3.8-Flash-Next-Uncensored)。
-  # i1 = imatrix 量子化。IQ3_M 89.5GB は本命 UD-Q3_K_XL (90.0GB) とほぼ同寸で
-  # 同じメモリ設計に載る。GGUFを実読みして arch=qwen4exp / 単一ファイル /
+  # i1 = imatrix 量子化。GGUFを実読みして arch=qwen4exp / 単一ファイル /
   # per_layer_token_embd.weight [160,320001536] IQ4_NL ≈28.8GB を確認済み
-  # (本命と同一構造なので --override-tensor も同じで効く)。
+  # (本命と同一構造)。
   # ⚠️ Flash-Next は MoE。MoEへの abliteration は 27B (dense) より品質劣化の
   #    リスクが高い (Qwen3-30B-A3B の abliterated が非abliterated 4-8B に
   #    負けた報告あり。数学系が戻りにくい)。27B以上に実測が重要。
+  #
+  # 量子化の選定 (2026-09-03、IQ3_M → IQ4_XS に更新):
+  #   base モデルの独立 KLD 実測 (AesSedai) は IQ3_S 0.163 → IQ4_XS 0.080 →
+  #   Q4_K_M 0.041 で、IQ4_XS が品質/サイズの膝。IQ3_M は 0.10-0.16 帯と推定。
+  #   GPU 常駐 (= ファイル − PLE 28.8GB) と KV 6.5GB@262K 込みの見積り:
+  #     i1-IQ3_M    89.5GB → 60.7GB (67GB)   旧採用
+  #     i1-IQ4_XS   97.5GB → 68.7GB (75GB)   ← 採用。96GB 上限に 21GB の余裕、単一ファイル
+  #     i1-Q4_K_S  111.8GB → 83.0GB (90GB)   .part1of3..3of3 の raw 分割で cat 結合が必要、
+  #                                          i1-Q4_K_M で "not within file bounds" 報告あり
+  #     i1-Q4_K_M  ~113GB  → 84GB   (91GB)   上限に接近しリスク
+  #   M4 Max Metal での IQ 系と K 系のカーネル速度差は約 3% で選定要因にならない。
+  #   低ビットで thinking が終端しない報告 (Q3_K_S、テンプレ既定 reasoning_effort=xhigh
+  #   が原因) は IQ4_XS 化で改善方向。再発したら
+  #   --chat-template-kwargs '{"reasoning_effort":"low"}' を足す。
+  #
+  # 比較枠 qwen38-flash-next-rvn (下) と同じ IQ4_XS で揃え、系譜差だけを比べられるようにした。
   # 同系の非gated候補 (乗り換え先):
   #   mradermacher/Qwen3.8-Flash-Next-Uncensored-GGUF (静的量子化 IQ4_XS 98.4GB)
-  #   windowsxp811203/Qwen3.8-Flash-Next-Abliterated-GGUF (別系譜・DL数最多)
+  #   spiritfather/Qwen3.8-Flash-Next-heretic-2-i1-GGUF (Heretic 系、MTP ヘッド同梱・
+  #     PLE Q8_0 で IQ4_XS 116.7GiB/常駐 66GiB。llama.cpp #27836 マージ後に再評価)
   qwen38-flash-next-uncensored:
     cmd: |
       ${llama_server}
       --port ${PORT}
       -hfr mradermacher/Qwen3.8-Flash-Next-Uncensored-i1-GGUF
-      -hff Qwen3.8-Flash-Next-Uncensored.i1-IQ3_M.gguf
+      -hff Qwen3.8-Flash-Next-Uncensored.i1-IQ4_XS.gguf
       --jinja
       -c 262144
-      --override-tensor per_layer_token_embd=CPU
     ttl: 7200
     aliases:
       - abliterated
+
+  # ── 無検閲: 比較枠 RVN (別系譜) ───────────────────────────────────
+  # 0bserverx/RVN-Qwen3.8-Flash-Next-Abliterated-Uncensored (2026-09-01 公開)。
+  # 手法: R2 射影 (strength 1.55) で拒否方向を除去 + rank-16 LoRA で修復。
+  # 公開値: ppl 4.524→4.502 (base より良い) / IFEval +0.9 / GSM8K −1.4 /
+  #   strict refusal 2/100。ただし完全準拠は 65/100 で残り 32/100 は「迂回回答」
+  #   (拒否はしないが正面から答えない) — orcarouter 系 (AdvBench 拒否 2%) との
+  #   体感差はここに出るはず。
+  # text-only (vision と MTP ヘッドは除去済み)。IQ4_XS 合計 97.5GB を 8 シャード
+  # (00001-of-00008 …) で配布、第2シャード 28GB が PLE と推定。imatrix は V6。
+  # 公開 2 日・DL 9 で実績ゼロなので本命ではなく比較用。Hermes は uncensored 側。
+  # シャード分割 GGUF は -hf repo:QUANT が使えない (-hfr/-hff で先頭シャード指定)。
+  qwen38-flash-next-rvn:
+    cmd: |
+      ${llama_server}
+      --port ${PORT}
+      -hfr 0bserverx/RVN-Qwen3.8-Flash-Next-Abliterated-Uncensored-GGUF
+      -hff RVN-Qwen3.8-Flash-Next-IQ4_XS-00001-of-00008.gguf
+      --jinja
+      -c 262144
+    ttl: 7200
+    aliases:
+      - rvn
 
   # ── フォールバック: 旧無検閲枠 Qwen3.8-27B-Uncensored ────────────
   # OrcaRouter abliterated 版の公開ミラー。本体 Q8_0 (~29GB) + MTPドラフトヘッド

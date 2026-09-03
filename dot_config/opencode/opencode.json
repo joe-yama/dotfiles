@@ -16,7 +16,14 @@
           }
         },
         "qwen38-flash-next-uncensored": {
-          "name": "Qwen 3.8-Flash-Next uncensored (GGUF i1-IQ3_M, 262K)",
+          "name": "Qwen 3.8-Flash-Next uncensored (GGUF i1-IQ4_XS, 262K)",
+          "limit": {
+            "context": 262144,
+            "output": 65536
+          }
+        },
+        "qwen38-flash-next-rvn": {
+          "name": "Qwen 3.8-Flash-Next RVN abliterated (GGUF IQ4_XS, 262K)",
           "limit": {
             "context": 262144,
             "output": 65536

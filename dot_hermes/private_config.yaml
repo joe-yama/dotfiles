@@ -10,6 +10,10 @@ model:
   base_url: http://127.0.0.1:8080/v1
   api_key: local
   # 2026-08-30: 無検閲枠を Qwen3.8-27B-Uncensored から Flash-Next 版へ移行。
+  # 2026-09-03: 同エイリアスの実体を i1-IQ3_M → i1-IQ4_XS に更新 (名前は不変)。
+  #   比較枠 qwen38-flash-next-rvn (別系譜 RVN、同じ IQ4_XS) も llama-swap に併載。
+  #   llama-server は構造化 tool_calls を返す必要がある — Hermes は content 内の
+  #   XML <tool_call> を strip_think_blocks() で捨てるだけで実行しない。
   # 旧モデルに戻すときは qwen38-abliterated / 131072 / 65536 に戻すこと。
   default: qwen38-flash-next-uncensored
   context_length: 262144
@@ -25,3 +29,7 @@ plugins:
   enabled:
     - platforms/discord
 agent: {}
+# hermes が対話中に書き込む「案内を見た」フラグ。取り込んで diff を消しているだけ。
+onboarding:
+  seen:
+    busy_input_prompt: true
