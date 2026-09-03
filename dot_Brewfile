@@ -51,9 +51,11 @@ brew "marksman"
 brew "neovim"
 brew "nkf"
 brew "node"
-# Qwen3.8-Flash-Next (arch qwen4exp) は llama.cpp PR #27742 (2026-08-27 マージ)
-# 以降の master でしか読めない。安定版 formula が追いついたら HEAD を外す。
-brew "llama.cpp", args: ["HEAD"]
+# llama.cpp は Homebrew ではなく公式リリースバイナリを使う
+# (run_onchange_after_install-llama-cpp.sh → ~/.local/opt/llama.cpp/current)。
+# formula は -DLLAMA_USE_SYSTEM_GGML=ON で別 formula `ggml` に依存しており、
+# ggml の同期遅れで master (qwen4exp 修正込み b10767+) がビルドできない (2026-09-03)。
+# 安定版 formula が Qwen3.8-Flash-Next を読めるようになったら戻してよい。
 brew "opencode"
 brew "pandoc"
 brew "git-delta"

@@ -8,11 +8,15 @@
 # リクエストの model 名に応じて llama-swap が上流サーバーを自動起動・スワップする。
 # バックエンドは MLX 優先 (vllm-mlx)、GGUF は llama.cpp (llama-server)。
 #
-# ⚠️ llama.cpp は HEAD ビルド必須 (dot_Brewfile で args: ["HEAD"] 指定)。
+# ⚠️ llama.cpp は公式リリースバイナリ b10767+ を使う
+#    (run_onchange_after_install-llama-cpp.sh が ~/.local/opt/llama.cpp/current に配置)。
 #    本命の Qwen3.8-Flash-Next は arch `qwen4exp` で、対応は PR #27742
 #    (2026-08-27 マージ)。Homebrew 安定版 0.3.0 (commit c1d0e7a0 / 08-25) は
 #    qwen4exp を持たず「unknown model architecture」で読み込み拒否する。
-#    qwen4exp は qwen3next とは別アーキ。混同しないこと。
+#    さらに 2026-09-01 に qwen4exp の修正 3 本 (#27941 seq copy 時の無警告誤出力 /
+#    #28123 recurrent state rollback / #28023) がマージされ b10767 に収録。
+#    Homebrew HEAD は別 formula `ggml` の同期待ちでビルドできない (2026-09-03)
+#    ため公式バイナリに切り替えた。qwen4exp は qwen3next とは別アーキ。
 
 # 90GB 級モデルの初回ロード(HFダウンロード含む)を許容。
 # llama-swap v251 では model 単位の上書き不可 (config-schema.json で確認済み)
@@ -21,7 +25,9 @@ healthCheckTimeout: 3600
 
 macros:
   vllm_mlx: /Users/joe/.local/bin/vllm-mlx
-  llama_server: /opt/homebrew/bin/llama-server
+  # Homebrew 版 (/opt/homebrew/bin/llama-server, b10703) ではなく公式バイナリ。
+  # build 番号は run_onchange_after_install-llama-cpp.sh の LLAMA_CPP_BUILD で固定。
+  llama_server: /Users/joe/.local/opt/llama.cpp/current/llama-server
 
 models:
   # ── コーディング主力 + 日本語チャット兼用 (本命) ─────────────────

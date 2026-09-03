@@ -15,4 +15,14 @@ if ! command -v uv >/dev/null 2>&1; then
 fi
 
 uv tool install --upgrade vllm-mlx
-uv tool install --upgrade --python 3.12 hermes-agent
+# Discord ゲートウェイの依存 (discord.py[voice]/brotlicffi/aiohttp) と edge-tts は
+# hermes が実行時に lazy install するもので、hermes-agent 本体の依存ではない。
+# `uv tool install --upgrade` は venv を作り直すので --with で明示しないと消える
+# (2026-09-03 に踏んだ)。pin は hermes 同梱の tools/lazy_deps.py の
+# platform.discord / tts.edge と同じ値。hermes 側が pin を上げたら実行時に
+# 自動で入れ直すので、ここが古くても壊れはしない。
+uv tool install --upgrade --python 3.12 hermes-agent \
+  --with 'discord.py[voice]==2.7.1' \
+  --with 'brotlicffi==1.2.0.1' \
+  --with 'aiohttp==3.14.1' \
+  --with 'edge-tts==7.2.7'
