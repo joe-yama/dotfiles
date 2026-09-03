@@ -21,8 +21,15 @@ uv tool install --upgrade vllm-mlx
 # (2026-09-03 に踏んだ)。pin は hermes 同梱の tools/lazy_deps.py の
 # platform.discord / tts.edge と同じ値。hermes 側が pin を上げたら実行時に
 # 自動で入れ直すので、ここが古くても壊れはしない。
+# rtk-hermes: bundled ではない pip 配布プラグイン (entry point `rtk-rewrite`)。
+#   terminal 出力を rtk で圧縮する。config.yaml の plugins.enabled と Brewfile の
+#   `brew "rtk"` が対になる。
+# ddgs: bundled `web-ddgs` バックエンドの optional dep。import できれば
+#   キー不要の DuckDuckGo 検索が自動で有効になる。
 uv tool install --upgrade --python 3.12 hermes-agent \
   --with 'discord.py[voice]==2.7.1' \
   --with 'brotlicffi==1.2.0.1' \
   --with 'aiohttp==3.14.1' \
-  --with 'edge-tts==7.2.7'
+  --with 'edge-tts==7.2.7' \
+  --with 'rtk-hermes' \
+  --with 'ddgs'
