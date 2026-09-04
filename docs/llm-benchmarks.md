@@ -4,9 +4,35 @@
 モデルを入れ替えたら再計測してこの表を更新する。
 
 - 機材: MacBook Pro (M4 Max / 128GB)
-- エンドポイント: llama-swap (127.0.0.1:8080)
+- エンドポイント: llama-swap (127.0.0.1:8080)。構成は `local-llm-architecture.md`
 
-## Results — Flash-Next 無検閲枠 (2026-09-03)
+> **2026-09-05 撤去**: `qwen38-27b` / `qwen38-27b-mlx` / `qwen38-abliterated` (27B 世代フォールバック 3 本、計 87GB) と
+> `qwen38-flash-next-rvn` (比較枠 91GB) をレジストリとディスクから削除した。下表の該当行は履歴。
+> 同日、`qwen38-27b-fast` (15GB) も削除し、opencode の small_model を `qwen38-flash-next` に置き換えた。27B 世代は全撤去。
+> 同日、mlx-serve v26.9.1 の実機 A/B (Flash-Next 4bit: short 70.3 / 24k 後 57.9 tok/s、llama.cpp UD-Q3_K_XL の 2.1〜2.2 倍) を
+> 実施。詳細は検証レポート (mlxserve-ab-report-20260905.md) を参照。
+
+## Results — mlx-serve 切り替え (2026-09-05)
+
+mlx-serve v26.9.1 (MLX 0.32.2) vs llama.cpp b10769。順序反転 2 周・各周 3 run 中央値、一意スタンプで cache 無効化。
+short = 固定英文 (thinking on、256 tok)、long = 実テキスト ≈23.7k tok + needle (thinking off、256 tok)。
+詳細・ハーネス: `mlxserve-ab-20260905.md`、`bench/`。**この結果で両エントリを mlx-serve に切り替え、GGUF は削除した。**
+
+| Alias (2026-09-05 以降の実体) | Pack | Quant | On disk | 常駐 | short decode | short TTFT | 24k 後 decode | 24k prefill |
+|---|---|---|---|---|---:|---:|---:|---:|
+| `qwen38-flash-next` | `ddalcu/Qwen3.8-Flash-Next-MLX-Serve-4bit` | MLX 4bit g64 (lm_head 8bit) | 105 GB | 67 GB wired | **70.3** | 1.22 s | **57.9** | **694** |
+| 同 + MTP (`enable_mtp:true`、不採用) | 同上 | 同上 | | 70 GB | 74.5 | 1.3 s | 49.7〜56.8 | 696 |
+| `qwen38-flash-next-uncensored` *(Hermes 既定)* | `ARC4NUM/Qwen3.8-Flash-Next-Uncensored-MLX-Serve-4bit` | MLX mixed 4/8bit | 107 GB | 70 GB wired | **56.1** | 1.0〜1.4 s | **47.9** | **700** |
+| 同 + MTP (不採用) | 同上 | 同上 | | | 60.4〜63.5 | 1.2 s | 50.0 | 695 |
+| *(旧)* `qwen38-flash-next` | `unsloth/Qwen3.8-Flash-Next-GGUF` | UD-Q3_K_XL | 90 GB | 10 GB dirty + 56 GB mapped | 34.0 | 0.80 s | 26.0 | 402 |
+| *(旧)* `qwen38-flash-next-uncensored` | `mradermacher/…-Uncensored-i1-GGUF` | i1-IQ4_XS | 97.5 GB | 10 GB dirty + 63 GB mapped | 37.7 | 0.81 s | 33.3 | 398 |
+
+- 品質プローブ (code 5 題 / tools 4 問 / NIAH / 日本語 / 無検閲は拒否 3 問) は全アーム同等。tools の 3/4 はエンジン差ではなくツール選択の揺れ。
+- MTP は本命パックで利得なし〜負 (24k 後 −2〜−14%)、無検閲パックで +4〜13%。パック依存なので既定 off で揃えた。
+- 短文 TTFT は mlx-serve が 0.4 秒遅い。長文プレフィルは 1.7 倍速い。
+- mlx-serve は重みを wired で持つ (退避不可)。推論中のシステム wired は 78〜90GB。llama-swap の排他スワップ外で別モデルを立てると Metal OOM で落ちる (計測中に Hermes cron 09:00 との二重常駐で 1 回発生)。
+
+## Results — Flash-Next 無検閲枠 (2026-09-03、履歴)
 
 llama.cpp 公式バイナリ b10769 / `-c 262144` / `--jinja` / `--override-tensor` なし
 (`--lazy-mode auto` が PLE 28.8GB を CPU 側 mmap に置く)。2 周 (順序反転) とも中央値が

@@ -52,8 +52,10 @@ brew "marksman"
 brew "neovim"
 brew "nkf"
 brew "node"
-# llama.cpp は Homebrew ではなく公式リリースバイナリを使う
-# (run_onchange_after_install-llama-cpp.sh → ~/.local/opt/llama.cpp/current)。
+# llama.cpp / mlx-serve は Homebrew ではなく公式リリースバイナリを使う
+# (run_onchange_after_install-llama-cpp.sh → ~/.local/opt/llama.cpp/current、
+#  run_onchange_after_install-mlx-serve.sh → ~/.local/opt/mlx-serve/current)。
+# 2026-09-05 から llama-swap の上流は mlx-serve のみ (docs/local-llm-architecture.md)。
 # formula は -DLLAMA_USE_SYSTEM_GGML=ON で別 formula `ggml` に依存しており、
 # ggml の同期遅れで master (qwen4exp 修正込み b10767+) がビルドできない (2026-09-03)。
 # 安定版 formula が Qwen3.8-Flash-Next を読めるようになったら戻してよい。

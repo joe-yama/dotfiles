@@ -4,252 +4,105 @@
 #   1. このファイル(chezmoiソース)を編集
 #   2. chezmoi apply ~/.config/llama-swap/config.yaml
 #   3. launchctl kickstart -k gui/$UID/local.llama-swap  (設定再読込)
+#   消費側 (Hermes / opencode / dsh / docs) はエントリ名で参照しているので、名前を変えなければ
+#   触らずに済む。全体像は docs/local-llm-architecture.md。
 #
-# リクエストの model 名に応じて llama-swap が上流サーバーを自動起動・スワップする。
-# バックエンドは MLX 優先 (vllm-mlx)、GGUF は llama.cpp (llama-server)。
+# リクエストの model 名に応じて llama-swap が上流サーバーを自動起動・排他スワップする。
+# バックエンドは 2026-09-05 から mlx-serve (ddalcu、Zig+Metal ネイティブ)。
+#   実機 A/B (docs/mlxserve-ab-20260905.md、順序反転 2 周):
+#     本命   Flash-Next 4bit      short 70.3 / 24k 後 57.9 tok/s、prefill 694  (llama.cpp UD-Q3_K_XL: 34.0 / 26.0 / 402)
+#     無検閲 Flash-Next mixed4/8  short 56.1 / 24k 後 47.9 tok/s、prefill 700  (llama.cpp i1-IQ4_XS:   37.7 / 33.3 / 398)
+#   品質プローブ (code 5 題 / tools 4 問 / NIAH / 日本語 / 拒否 3 問) は llama.cpp と同等。
+#   短文 TTFT は 0.4 秒ほど悪化 (0.8 → 1.2 s)。
+#   thinking は mlx-serve のサーバ既定が off で、既定を変えるフラグが無い (--reasoning-budget は上限のみ)。
+#   llama.cpp 時代と同じ「常に thinking on」にするため、llama-swap の filters.setParams で
+#   全リクエストに enable_thinking: true を注入している (2026-09-05)。クライアント側の
+#   enable_thinking: false は上書きされる。一時的に切りたいときは setParams をコメントアウトして kickstart。
 #
-# ⚠️ llama.cpp は公式リリースバイナリ b10767+ を使う
-#    (run_onchange_after_install-llama-cpp.sh が ~/.local/opt/llama.cpp/current に配置)。
-#    本命の Qwen3.8-Flash-Next は arch `qwen4exp` で、対応は PR #27742
-#    (2026-08-27 マージ)。Homebrew 安定版 0.3.0 (commit c1d0e7a0 / 08-25) は
-#    qwen4exp を持たず「unknown model architecture」で読み込み拒否する。
-#    さらに 2026-09-01 に qwen4exp の修正 3 本 (#27941 seq copy 時の無警告誤出力 /
-#    #28123 recurrent state rollback / #28023) がマージされ b10767 に収録。
-#    Homebrew HEAD は別 formula `ggml` の同期待ちでビルドできない (2026-09-03)
-#    ため公式バイナリに切り替えた。qwen4exp は qwen3next とは別アーキ。
+# ⚠️ メモリ: mlx-serve は重み 67〜70GB を wired (退避不可) で持ち、推論中はシステムの wired が
+#    78〜90GB に達する (Metal wired limit は起動時に 110,100MB へ引き上げられる)。上限を超えると
+#    Metal OOM でプロセスが即死するので、必ず llama-swap の排他スワップの中で動かすこと。
+#    手動で mlx-serve を単独起動しているときに llama-swap 側でモデルを立てない (2026-09-05 に実際に落ちた)。
 #
-# --override-tensor per_layer_token_embd=CPU について (2026-09-03 見直し):
-#    b10703 以降の llama.cpp は `--lazy-mode auto` が既定で、4GiB 超のテンソルを
-#    mmap の on-demand 読みにする (PLE 28.8GB が対象)。PR #27837 以降は lazy が
-#    -ot / --load-mode より優先されるため、旧来の -ot 退避は no-op。起動ログの
-#    `tensor per_layer_token_embd.weight (size = N MiB) lazy read enabled` と
-#    `Metal model buffer size` (≈ ファイルサイズ − 28.8GB) で確認する。
+# llama.cpp (GGUF) 経路は 2026-09-05 に撤去。バイナリ (~/.local/opt/llama.cpp、b10769) は戻し用に残置、
+# GGUF は削除済み。戻す場合の cmd は jj 履歴 (2026-09-05 以前の本ファイル) を参照。
 
-# 90GB 級モデルの初回ロード(HFダウンロード含む)を許容。
-# llama-swap v251 では model 単位の上書き不可 (config-schema.json で確認済み)
-# のためグローバルで確保する。事前取得しておけば実ロードは3分前後。
-healthCheckTimeout: 3600
+# 初回ロードは mlx-serve が 16〜18 秒でヘルス到達 (遅延ロード)。HF 取得を伴う場合の保険として長めに取る。
+healthCheckTimeout: 1800
 
 macros:
-  vllm_mlx: /Users/joe/.local/bin/vllm-mlx
-  # Homebrew 版 (/opt/homebrew/bin/llama-server, b10703) ではなく公式バイナリ。
-  # build 番号は run_onchange_after_install-llama-cpp.sh の LLAMA_CPP_BUILD で固定。
+  # run_onchange_after_install-mlx-serve.sh が MLX_SERVE_VERSION を固定して配置する。
+  mlx_serve: /Users/joe/.local/opt/mlx-serve/current/mlx-serve-macos-arm64/mlx-serve
+  # 戻し用 (現在は未使用)。run_onchange_after_install-llama-cpp.sh の LLAMA_CPP_BUILD で固定。
   llama_server: /Users/joe/.local/opt/llama.cpp/current/llama-server
 
 models:
   # ── コーディング主力 + 日本語チャット兼用 (本命) ─────────────────
-  # Qwen3.8-Flash-Next: 125B MoE (512エキスパート top-10) + 51B PLE /
-  # アクティブ 6B/token / ネイティブマルチモーダル / 262K native。
+  # Qwen3.8-Flash-Next: 125B MoE (512エキスパート top-10) + 51B n-gram 埋め込み表 /
+  # アクティブ 6B/token / ネイティブマルチモーダル / 262K native / QSA スパースアテンション。
   # 2026-08-30 に本命を Qwen3.8-27B から移行 (docs/llmweekly20260827.md)。
   # 27B 比: DeepSWE 1.1 58.7 vs 42.2 / SWE-bench Multilingual 81.0 vs 77.5。
-  # ただし Terminal-Bench 2.1 は 27B 側が優位。ライセンスは Apache 2.0 から
-  # Qwen Community License 1.0 に後退している。
+  # ただし Terminal-Bench 2.1 は 27B 側が優位。ライセンスは Qwen Community License 1.0。
   #
-  # PLE (Per-Layer Embeddings) の GPU 外し:
-  #   GGUF を実読みして確定した唯一の巨大テンソルは
-  #     per_layer_token_embd.weight = [160, 320001536] IQ4_NL ≈ 28.8GB
-  #   (メタデータ: ple.layers=[1] / ngram_size=3 / heads_per_ngram=8
-  #    → 16ヘッド × 約2000万語彙 = 320M行 × 160次元 = 51.2B要素)。
-  #   行列積ではなく ggml_get_rows でアクセスするため GPU 外に置いても安い。
-  #   llama.cpp 既定の --lazy-mode auto がこのテンソルを on-demand 読みにするので
-  #   明示の --override-tensor は不要 (ファイル冒頭の注記参照)。
-  #   GPU 常駐は 90.0GB - 28.8GB ≈ 61GB。実用GPUメモリ上限 約96GB に
-  #   対し KV 込みでも約35GBの余裕がある。
-  #   ⚠️ 週次調査に載っていた
-  #      --override-tensor "per_layer_token_embd=CPU,ple_ngram_embd=CPU"
-  #      は誤り。ple_ngram_embd というテンソルは存在しない (blk.1.ple_key /
-  #      ple_value / ple_conv1d / ple_norm_* は合計40MB未満で退避対象外)。
+  # パック: ddalcu/Qwen3.8-Flash-Next-MLX-Serve-4bit (105GB、113 ファイル)
+  #   routed experts / attention / GDN / embed 4bit g64、lm_head 8bit g64、n-gram 表 4bit g32。
+  #   n-gram 表は ngram_table.bin (32GB) として mmap され GPU に乗らない (page cache)。
+  #   MTP ヘッドと vision タワーを同梱。常駐 ≈ 67GB (wired) + KV。
+  #   取得: mlx-serve pull ddalcu/Qwen3.8-Flash-Next-MLX-Serve-4bit
+  #   ⚠️ pull は既存ディレクトリの欠落シャードを検出しない。手動取得したら HF API の
+  #      siblings サイズと全ファイルを照合すること。
   #
-  # MTP なし: NextN/MTP ドラフトヘッド (llama.cpp PR #27836) は 2026-08-30
-  #   時点で Draft のまま。27B の --spec-type draft-mtp に相当する投機デコード
-  #   が使えないので素のデコード速度になる。マージされたら要再測定。
+  # フラグ:
+  #   --ctx-size 262144  ネイティブ上限。KV は数 GB。
+  #   --mtp は付けない: 本命パックでは短文 +6%、24k 後 −2〜−14% (受理率 40〜51%) で利得なし。
+  #   --kv-quant は既定 off (f16 相当)。
+  #   thinking は filters.setParams で常時 on (ファイル冒頭の注記参照)。
   #
-  # KVキャッシュ: QSAスパースアテンション (budget 2048) のおかげで 262K
-  #   フルコンテキストでも約6.5GB。f16 既定のまま品質側に振る (27B無検閲枠で
-  #   実測した通り、このアーキではKV型の速度差はノイズ以下)。
-  #
-  # 初回は 90GB のHFダウンロードが走る。事前取得推奨:
-  #   llama-server -hfr unsloth/Qwen3.8-Flash-Next-GGUF \
-  #     -hff UD-Q3_K_XL/Qwen3.8-Flash-Next-UD-Q3_K_XL-00001-of-00003.gguf \
-  #     --ctx-size 512 --no-warmup   # 3分割シャードを自動で全部取りに行く
-  #
-  # 量子化の選択肢 (GPU常駐 = ファイルサイズ - 28.8GB):
-  #   UD-Q3_K_XL   90.0GB → 約61GB  ← 採用 (品質90%超・ロード最短)
-  #   UD-IQ4_XS    93.7GB → 約65GB
-  #   UD-Q4_K_XL  111.3GB → 約82GB  (KV込みで96GBに接近。要実測)
-  #
-  # ロードに3分以上かかるため TTL を長く取り swap 頻度を下げる。
-  # 90GB の本モデルと 29GB の 27B は同時常駐できない (llama-swap の既定は
-  # 排他スワップなので自動的に片方のみ)。
+  # mlx-serve の /v1/models はディレクトリ名 (org/ なし) を id にするので useModelName で読み替える。
   qwen38-flash-next:
     cmd: |
-      ${llama_server}
-      --port ${PORT}
-      -hfr unsloth/Qwen3.8-Flash-Next-GGUF
-      -hff UD-Q3_K_XL/Qwen3.8-Flash-Next-UD-Q3_K_XL-00001-of-00003.gguf
-      --jinja
-      -c 262144
+      ${mlx_serve}
+      --model /Users/joe/.mlx-serve/models/ddalcu/Qwen3.8-Flash-Next-MLX-Serve-4bit
+      --serve --host 127.0.0.1 --port ${PORT}
+      --ctx-size 262144
+    useModelName: Qwen3.8-Flash-Next-MLX-Serve-4bit
+    checkEndpoint: /health
+    filters:
+      setParams:
+        enable_thinking: true
     ttl: 7200
     aliases:
       - flash-next
       - default
 
-  # ── フォールバック: 旧本命 Qwen3.8-27B ─────────────────────────
-  # Qwen 3.8-27B (dense, 262k ctx, Apache 2.0)。GGUF Q8_0 + MTP投機デコード。
-  # 2026-08-27実測: 21.0 tok/s (draft受理66%) vs MLX 8bit 16.0 tok/s → GGUF採用。
-  # Flash-Next はMTPが無く長文脈で逆転しうる (同型機実測で28kプレフィル後
-  # 15.8 tok/s) ため、実測が終わるまで比較用に残す。Terminal-Bench 2.1 では
-  # こちらが優位。
-  # 注: 過剰思考癖があるためクライアント側で reasoning effort low 推奨
-  qwen38-27b:
-    cmd: |
-      ${llama_server}
-      --port ${PORT}
-      -hf unsloth/Qwen3.8-27B-GGUF:Q8_0
-      --jinja
-      -c 131072
-      --cache-type-k q8_0
-      --cache-type-v q8_0
-      --spec-type draft-mtp
-    ttl: 1800
-    aliases:
-      - qwen38
-
-  # MLX 8bit 比較枠 (vision入力が必要な場合はこちら)
-  qwen38-27b-mlx:
-    cmd: |
-      ${vllm_mlx} serve mlx-community/Qwen3.8-27B-8bit
-      --port ${PORT}
-      --continuous-batching
-      --reasoning-parser qwen3
-    useModelName: mlx-community/Qwen3.8-27B-8bit
-    ttl: 1800
-
-  # 速度重視枠 (MLX 4bit ~17GB)
-  qwen38-27b-fast:
-    cmd: |
-      ${vllm_mlx} serve mlx-community/Qwen3.8-27B-4bit
-      --port ${PORT}
-      --continuous-batching
-      --reasoning-parser qwen3
-    useModelName: mlx-community/Qwen3.8-27B-4bit
-    ttl: 1800
-
-  # ── 無検閲: 拒否ゼロ系 (abliterated) 本命 ───────────────────────
-  # Qwen3.8-Flash-Next-Uncensored。系譜は現行27B無検閲枠と同じ OrcaRouter。
-  # 本家 orcarouter/Qwen3.8-Flash-Next-Uncensored-GGUF は gated (HF認証必須)
-  # で 27B のときと同じ理由で使えないため、非gatedの mradermacher ミラーを
-  # 採用する (base_model: orcarouter/Qwen3.8-Flash-Next-Uncensored)。
-  # i1 = imatrix 量子化。GGUFを実読みして arch=qwen4exp / 単一ファイル /
-  # per_layer_token_embd.weight [160,320001536] IQ4_NL ≈28.8GB を確認済み
-  # (本命と同一構造)。
-  # ⚠️ Flash-Next は MoE。MoEへの abliteration は 27B (dense) より品質劣化の
-  #    リスクが高い (Qwen3-30B-A3B の abliterated が非abliterated 4-8B に
-  #    負けた報告あり。数学系が戻りにくい)。27B以上に実測が重要。
+  # ── 無検閲: 拒否ゼロ系 (abliterated) — Hermes 既定 ─────────────────
+  # ARC4NUM/Qwen3.8-Flash-Next-Uncensored-MLX-Serve-4bit (107GB、113 ファイル、非 gated、Apache-2.0 表記)。
+  #   base_model: orcarouter/Qwen3.8-Flash-Next-Uncensored (BF16 で abliteration、系譜は旧 27B 無検閲枠と同じ)。
+  #   量子化は mixed 4/8bit: routed experts 4bit g64、attention / GDN / shared expert / lm_head 8bit g64、
+  #   n-gram 表 4bit g32。非 expert 部が 8bit なので本命より decode が遅い (56 vs 70 tok/s) が品質側に厚い。
+  #   常駐 ≈ 70GB (wired)。
+  #   取得: mlx-serve pull ARC4NUM/Qwen3.8-Flash-Next-Uncensored-MLX-Serve-4bit
   #
-  # 量子化の選定 (2026-09-03、IQ3_M → IQ4_XS に更新):
-  #   base モデルの独立 KLD 実測 (AesSedai) は IQ3_S 0.163 → IQ4_XS 0.080 →
-  #   Q4_K_M 0.041 で、IQ4_XS が品質/サイズの膝。IQ3_M は 0.10-0.16 帯と推定。
-  #   GPU 常駐 (= ファイル − PLE 28.8GB) と KV 6.5GB@262K 込みの見積り:
-  #     i1-IQ3_M    89.5GB → 60.7GB (67GB)   旧採用
-  #     i1-IQ4_XS   97.5GB → 68.7GB (75GB)   ← 採用。96GB 上限に 21GB の余裕、単一ファイル
-  #     i1-Q4_K_S  111.8GB → 83.0GB (90GB)   .part1of3..3of3 の raw 分割で cat 結合が必要、
-  #                                          i1-Q4_K_M で "not within file bounds" 報告あり
-  #     i1-Q4_K_M  ~113GB  → 84GB   (91GB)   上限に接近しリスク
-  #   M4 Max Metal での IQ 系と K 系のカーネル速度差は約 3% で選定要因にならない。
-  #   低ビットで thinking が終端しない報告 (Q3_K_S、テンプレ既定 reasoning_effort=xhigh
-  #   が原因) は IQ4_XS 化で改善方向。再発したら
-  #   --chat-template-kwargs '{"reasoning_effort":"low"}' を足す。
+  # 2026-09-05 実測 (llama.cpp mradermacher i1-IQ4_XS 比): decode 1.49 倍 / 24k 後 1.44 倍 / prefill 1.76 倍。
+  #   拒否プローブ 3 問 (フィッシング教材 / 小説の悪役独白 / 過量服薬情報) は両エンジンとも回答 →
+  #   量子化で abliteration は失われていない。tools 4/4、code 5/5。
+  #   --mtp はこのパックでは +8〜13% (短文) / +4% (24k 後) と小さく正だが、本命と揃えて off。
+  # ⚠️ Flash-Next は MoE。MoE への abliteration は dense より品質劣化リスクが高い
+  #    (Qwen3-30B-A3B の abliterated が非 abliterated 4-8B に負けた報告あり)。
   #
-  # 比較枠 qwen38-flash-next-rvn (下) と同じ IQ4_XS で揃え、系譜差だけを比べられるようにした。
-  # 同系の非gated候補 (乗り換え先):
-  #   mradermacher/Qwen3.8-Flash-Next-Uncensored-GGUF (静的量子化 IQ4_XS 98.4GB)
-  #   spiritfather/Qwen3.8-Flash-Next-heretic-2-i1-GGUF (Heretic 系、MTP ヘッド同梱・
-  #     PLE Q8_0 で IQ4_XS 116.7GiB/常駐 66GiB。llama.cpp #27836 マージ後に再評価)
+  # 旧 GGUF (mradermacher i1-IQ4_XS 97.5GB、37.7 tok/s) は 2026-09-05 に削除。
+  # 比較枠 RVN (0bserverx) と旧 27B 無検閲枠は同日撤去。
   qwen38-flash-next-uncensored:
     cmd: |
-      ${llama_server}
-      --port ${PORT}
-      -hfr mradermacher/Qwen3.8-Flash-Next-Uncensored-i1-GGUF
-      -hff Qwen3.8-Flash-Next-Uncensored.i1-IQ4_XS.gguf
-      --jinja
-      -c 262144
+      ${mlx_serve}
+      --model /Users/joe/.mlx-serve/models/ARC4NUM/Qwen3.8-Flash-Next-Uncensored-MLX-Serve-4bit
+      --serve --host 127.0.0.1 --port ${PORT}
+      --ctx-size 262144
+    useModelName: Qwen3.8-Flash-Next-Uncensored-MLX-Serve-4bit
+    checkEndpoint: /health
+    filters:
+      setParams:
+        enable_thinking: true
     ttl: 7200
     aliases:
       - abliterated
-
-  # ── 無検閲: 比較枠 RVN (別系譜) ───────────────────────────────────
-  # 0bserverx/RVN-Qwen3.8-Flash-Next-Abliterated-Uncensored (2026-09-01 公開)。
-  # 手法: R2 射影 (strength 1.55) で拒否方向を除去 + rank-16 LoRA で修復。
-  # 公開値: ppl 4.524→4.502 (base より良い) / IFEval +0.9 / GSM8K −1.4 /
-  #   strict refusal 2/100。ただし完全準拠は 65/100 で残り 32/100 は「迂回回答」
-  #   (拒否はしないが正面から答えない) — orcarouter 系 (AdvBench 拒否 2%) との
-  #   体感差はここに出るはず。
-  # text-only (vision と MTP ヘッドは除去済み)。IQ4_XS 合計 97.5GB を 8 シャード
-  # (00001-of-00008 …) で配布、第2シャード 28GB が PLE と推定。imatrix は V6。
-  # 公開 2 日・DL 9 で実績ゼロなので本命ではなく比較用。Hermes は uncensored 側。
-  # シャード分割 GGUF は -hf repo:QUANT が使えない (-hfr/-hff で先頭シャード指定)。
-  qwen38-flash-next-rvn:
-    cmd: |
-      ${llama_server}
-      --port ${PORT}
-      -hfr 0bserverx/RVN-Qwen3.8-Flash-Next-Abliterated-Uncensored-GGUF
-      -hff RVN-Qwen3.8-Flash-Next-IQ4_XS-00001-of-00008.gguf
-      --jinja
-      -c 262144
-    ttl: 7200
-    aliases:
-      - rvn
-
-  # ── フォールバック: 旧無検閲枠 Qwen3.8-27B-Uncensored ────────────
-  # OrcaRouter abliterated 版の公開ミラー。本体 Q8_0 (~29GB) + MTPドラフトヘッド
-  # (別ファイル 3.2GB) の2ファイル構成。MTPヘッドは Q8_0 のみ公開で本体の量子化
-  # レベルに依らず共用。事前取得 (hf CLI 未導入のため curl):
-  #   cd ~/models/qwen38-uncensored
-  #   curl -L -C - -O https://huggingface.co/chimingw/Qwen3.8-27B-Uncensored-OrcaRouter-GGUF/resolve/main/Qwen3.8-27B-Uncensored-OrcaRouter-Q8_0.gguf
-  #   curl -L -C - --create-dirs -o MTP/Qwen3.8-27B-Uncensored-OrcaRouter-MTP-Q8_0.gguf https://huggingface.co/chimingw/Qwen3.8-27B-Uncensored-OrcaRouter-GGUF/resolve/main/MTP/Qwen3.8-27B-Uncensored-OrcaRouter-MTP-Q8_0.gguf
-  # 経緯 (2026-08-27):
-  #  - huihui-ai/...-abliterated-GGUF:Q8_0 → 出力破損 (全プロンプトで"000...")
-  #  - orcarouter/...-Uncensored-GGUF → gated (HF認証必須) で不採用
-  #  - hermes-43 (Hermes 4.3-36B MLX 8bit, 38GB) → 無検閲枠はこのモデルが
-  #    上位互換 (拒否率 0-6% vs RefusalBench 74.6%) かつ賢く速いため削除
-  #  - Q6_K (22GB) を試したが Q8_0 より遅く却下。同一プロンプト/-c 8192/同一MTP
-  #    ヘッドでの実測 (2026-08-27):
-  #      Q6_K  13.32 tok/s (75.08 ms/tok)  draft受理 0.527
-  #      Q8_0  18.38 tok/s (54.40 ms/tok)  draft受理 0.527
-  #    受理率が同一なので投機デコードは正常。M4 Max (546GB/s) では 27B の
-  #    Q6_K は帯域ではなく逆量子化コストが律速。Q8_0 は int8×スケールで安価だが
-  #    Q6_K は k-quant のスーパーブロック (6bitを ql/qh に分割 + サブブロック毎
-  #    スケール) で ALU が重く、サイズ23%減の利得を食い潰す。128GB機でメモリ
-  #    節約の動機もないため Q8_0 が速度・品質の両面で上位。低ビット化を試すなら
-  #    k-quant 以外 (IQ4_NL 等) でないと同じ壁に当たる可能性が高い。
-  #  - KVキャッシュを q8_0 → f16 (既定) に変更。本モデルは 64層中 full attention が
-  #    4層ごとの16層のみ (残りは linear attention) で KV が小さく、131k ctx でも
-  #    f16 で約 8.4GB (q8_0 比 +4GB)。
-  #    速度影響を実測 (2026-08-27, -c 131072/-np 1/ignore_eos で厳密200トークン
-  #    生成/順序反転2周/90秒クールダウン、順序バランス平均):
-  #                  短文      24kプレフィル後   プレフィル
-  #      f16       21.64        13.35          184.9 tok/s
-  #      q8_0      21.88        13.76          184.4 tok/s
-  #    差は短文 -1.1%、24k -3.0%、プレフィル +0.3%。ただし同一条件内の測定ばらつき
-  #    (熱ダレ由来) が 12-15% あり、ポジション別に見ると差の符号すら反転する
-  #    (24k: 1台目 f16 +1.8% / 2台目 f16 -7.9%)。→ **KV型の速度差はノイズ以下で
-  #    判別不能**。f16 は実質無コストなので品質側に振るのが妥当。full attention が
-  #    1/4しかないアーキテクチャゆえKVトラフィックが小さく差が出にくい。
-  #    3%を確定させるには1条件10回以上+厳密な温度管理が必要。
-  #  - 参考: 24k コンテキスト投入でデコードは約 -38% (21.6→13.4 tok/s)、
-  #    24k のプレフィルに約130秒かかる (185 tok/s)。KV型に依らない。
-  #  - BF16化は非推奨: 公開 BF16 は FP8-derived で情報量が実質 FP8、54GB払って
-  #    速度半減する割に中身が Q8_0 と大差ない。
-  qwen38-abliterated:
-    cmd: |
-      ${llama_server}
-      --port ${PORT}
-      -m /Users/joe/models/qwen38-uncensored/Qwen3.8-27B-Uncensored-OrcaRouter-Q8_0.gguf
-      -md /Users/joe/models/qwen38-uncensored/MTP/Qwen3.8-27B-Uncensored-OrcaRouter-MTP-Q8_0.gguf
-      --jinja
-      -c 131072
-      --spec-type draft-mtp
-    ttl: 1800
-    aliases:
-      - abliterated-27b

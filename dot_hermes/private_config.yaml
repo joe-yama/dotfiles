@@ -11,13 +11,15 @@ model:
   api_key: local
   # 2026-08-30: 無検閲枠を Qwen3.8-27B-Uncensored から Flash-Next 版へ移行。
   # 2026-09-03: 同エイリアスの実体を i1-IQ3_M → i1-IQ4_XS に更新 (名前は不変)。
-  #   比較枠 qwen38-flash-next-rvn (別系譜 RVN、同じ IQ4_XS) も llama-swap に併載。
-  #   llama-server は構造化 tool_calls を返す必要がある — Hermes は content 内の
-  #   XML <tool_call> を strip_think_blocks() で捨てるだけで実行しない。
-  # 旧モデルに戻すときは qwen38-abliterated / 131072 / 65536 に戻すこと。
+  # 2026-09-05: 同エイリアスの実体を mlx-serve の ARC4NUM mixed 4/8bit パックに切り替え (名前は不変)。
+  #   decode 56 tok/s (llama.cpp IQ4_XS の 1.5 倍)、拒否プローブ・tool_calls は同等。docs/mlxserve-ab-20260905.md。
+  #   上流は構造化 tool_calls を返す必要がある — Hermes は content 内の XML <tool_call> を
+  #   strip_think_blocks() で捨てるだけで実行しない。mlx-serve は Qwen の XML を tool_calls に変換する (確認済み)。
+  #   mlx-serve は thinking がサーバ既定 off だが、llama-swap の filters.setParams で enable_thinking: true を
+  #   注入して常時 on にしている (llama.cpp 時代と同じ)。
   default: qwen38-flash-next-uncensored
   context_length: 262144
-  # llama.cpp 経路 (-c 262144) なので vllm-mlx の 32768 上限は無関係。
+  # mlx-serve --ctx-size 262144 と揃えている。
   # プロンプト分を残して出力上限は ctx の半分に留める。
   max_tokens: 131072
 # hermes が書き込むマイグレーション marker。手で書き換えないこと。

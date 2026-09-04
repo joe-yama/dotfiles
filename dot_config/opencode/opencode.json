@@ -9,57 +9,22 @@
       },
       "models": {
         "qwen38-flash-next": {
-          "name": "Qwen 3.8-Flash-Next (GGUF UD-Q3_K_XL, 262K)",
+          "name": "Qwen 3.8-Flash-Next (mlx-serve 4bit, 262K)",
           "limit": {
             "context": 262144,
             "output": 65536
           }
         },
         "qwen38-flash-next-uncensored": {
-          "name": "Qwen 3.8-Flash-Next uncensored (GGUF i1-IQ4_XS, 262K)",
+          "name": "Qwen 3.8-Flash-Next uncensored (mlx-serve mixed 4/8bit, 262K)",
           "limit": {
             "context": 262144,
             "output": 65536
-          }
-        },
-        "qwen38-flash-next-rvn": {
-          "name": "Qwen 3.8-Flash-Next RVN abliterated (GGUF IQ4_XS, 262K)",
-          "limit": {
-            "context": 262144,
-            "output": 65536
-          }
-        },
-        "qwen38-27b": {
-          "name": "Qwen 3.8-27B (GGUF Q8 + MTP)",
-          "limit": {
-            "context": 131072,
-            "output": 32768
-          }
-        },
-        "qwen38-27b-mlx": {
-          "name": "Qwen 3.8-27B (MLX 8bit, vision)",
-          "limit": {
-            "context": 131072,
-            "output": 32768
-          }
-        },
-        "qwen38-27b-fast": {
-          "name": "Qwen 3.8-27B (MLX 4bit, fast)",
-          "limit": {
-            "context": 131072,
-            "output": 32768
-          }
-        },
-        "qwen38-abliterated": {
-          "name": "Qwen 3.8-27B abliterated (GGUF Q8)",
-          "limit": {
-            "context": 131072,
-            "output": 32768
           }
         }
       }
     }
   },
   "model": "local-llm/qwen38-flash-next",
-  "small_model": "local-llm/qwen38-27b-fast"
+  "small_model": "local-llm/qwen38-flash-next"
 }

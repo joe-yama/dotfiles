@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(JJ_EDITOR=true jj describe -m ' *)"
+      "Bash(JJ_EDITOR=true jj describe -m ' *)",
+      "Bash(cd *)"
     ]
   },
   "sandbox": {
