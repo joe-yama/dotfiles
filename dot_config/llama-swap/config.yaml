@@ -27,6 +27,19 @@
 # llama.cpp (GGUF) 経路は 2026-09-05 に撤去。バイナリ (~/.local/opt/llama.cpp、b10769) は戻し用に残置、
 # GGUF は削除済み。戻す場合の cmd は jj 履歴 (2026-09-05 以前の本ファイル) を参照。
 
+# 並列リクエストの注意 (2026-09-06、dsh サブエージェント遅延の調査結果):
+#   mlx-serve は decode は並列に束ねられるが、prefill 中は他の全リクエストが 1 トークンも進まない
+#   (77k トークン prefill 中の短文は最初のトークンまで 127 秒待った)。prefill ≈ 600 tok/s なので
+#   100k 級のプロンプトが 3 本並ぶと順番待ちが 300 秒を超え、mlx-serve の stall timeout (既定 300 秒、
+#   無トークンで切断) と dsh の streamIdleTimeoutMs (既定 300000) が同時に発火 → dsh が 5 回リトライして
+#   行列に並び直す、という 5 分刻みの空転になっていた。対策として
+#     --timeout 0                 stall timeout を無効化 (行列待ちを「遅い」に留める)
+#     --prefix-cache-mem 12GB     既定 2GB では 65k〜82k トークンで頭打ちになり、親の 80k 文脈が毎ターン
+#     --prefix-cache-entries 64   キャッシュ無しで再 prefill されていた。3 セッション × 150k で約 12GB。
+#   dsh 側は ~/.dsh/settings.yaml の llm-pi-ai.providers.local.streamIdleTimeoutMs を 1800000 にしてある。
+#   --prefill-chunk を下げてもチャンク境目で decode を挟まないので解決しない (MoE では逆に遅くなる)。
+#   1 本あたりの decode は並列数で割られる (1 本 50 tok/s、3 本 27、6 本 18)。
+
 # 初回ロードは mlx-serve が 16〜18 秒でヘルス到達 (遅延ロード)。HF 取得を伴う場合の保険として長めに取る。
 healthCheckTimeout: 1800
 
@@ -65,6 +78,8 @@ models:
       --model /Users/joe/.mlx-serve/models/ddalcu/Qwen3.8-Flash-Next-MLX-Serve-4bit
       --serve --host 127.0.0.1 --port ${PORT}
       --ctx-size 262144
+      --timeout 0
+      --prefix-cache-mem 12GB --prefix-cache-entries 64
     useModelName: Qwen3.8-Flash-Next-MLX-Serve-4bit
     checkEndpoint: /health
     filters:
@@ -98,6 +113,8 @@ models:
       --model /Users/joe/.mlx-serve/models/ARC4NUM/Qwen3.8-Flash-Next-Uncensored-MLX-Serve-4bit
       --serve --host 127.0.0.1 --port ${PORT}
       --ctx-size 262144
+      --timeout 0
+      --prefix-cache-mem 12GB --prefix-cache-entries 64
     useModelName: Qwen3.8-Flash-Next-Uncensored-MLX-Serve-4bit
     checkEndpoint: /health
     filters:

@@ -75,5 +75,6 @@ llama.cpp から mlx-serve へ切り替えた (経緯と実測は `mlxserve-ab-2
 - mlx-serve はストリーム末尾に `timings` を返し、`/health` を持つ。tool call は Qwen の XML 形式を構造化 `tool_calls` に変換する (Hermes 要件)。
 - mlx-serve の MTP (`--mtp`) は本命パックでは効果なし〜負、無検閲パックでは +4〜13%。既定 off で揃えている。
 - thinking を一時的に切りたいときは config.yaml の `filters.setParams` をコメントアウトして llama-swap を kickstart する。`--reasoning-budget N` で思考トークン上限だけを絞ることもできる。
+- **並列リクエスト (dsh サブエージェント等) の挙動 (2026-09-06 調査)**: mlx-serve は decode は束ねられるが、**prefill 中は他の全リクエストが 1 トークンも進まない** (77k prefill 中の短文は 127 秒待った)。1 本あたりの decode は並列数で割られる (1 本 50 / 3 本 27 / 6 本 18 tok/s)。100k 級プロンプトが 3 本並ぶと順番待ちが 300 秒を超え、mlx-serve の stall timeout (既定 300 秒) と dsh の `streamIdleTimeoutMs` (既定 300000) が同時に発火 → dsh が 5 回リトライして空転していた。対策: config.yaml の cmd に `--timeout 0` と `--prefix-cache-mem 12GB --prefix-cache-entries 64` (既定 2GB は 65k〜82k トークンで頭打ち。拡張後は 102k プロンプトの 2 回目が 172.7 秒 → 0.3 秒)、`~/.dsh/settings.yaml` に `streamIdleTimeoutMs: 1800000`。llama-swap の `concurrencyLimit` は待ち行列ではなく即拒否なので dsh には逆効果。`--prefill-chunk` を下げてもチャンク境目で decode を挟まない。
 - 更新: `run_onchange_after_install-mlx-serve.sh` の version / sha256 を書き換えて apply → kickstart。旧 version は `~/.local/opt/mlx-serve/` に残る。
 - 過去の経緯 (27B 世代、vllm-mlx、量子化選定、llama.cpp の Homebrew 問題) は `llm-benchmarks.md` と `llmweekly20260827.md`、および 2026-09-05 以前の `config.yaml` (jj 履歴) を参照。
