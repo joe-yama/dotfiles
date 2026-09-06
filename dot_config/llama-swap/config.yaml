@@ -14,14 +14,19 @@
 #     無検閲 Flash-Next mixed4/8  short 56.1 / 24k 後 47.9 tok/s、prefill 700  (llama.cpp i1-IQ4_XS:   37.7 / 33.3 / 398)
 #   品質プローブ (code 5 題 / tools 4 問 / NIAH / 日本語 / 拒否 3 問) は llama.cpp と同等。
 #   短文 TTFT は 0.4 秒ほど悪化 (0.8 → 1.2 s)。
-#   thinking は mlx-serve のサーバ既定が off で、既定を変えるフラグが無い (--reasoning-budget は上限のみ)。
-#   llama.cpp 時代と同じ「常に thinking on」にするため、llama-swap の filters.setParams で
-#   全リクエストに enable_thinking: true を注入している (2026-09-05)。クライアント側の
-#   enable_thinking: false は上書きされる。一時的に切りたいときは setParams をコメントアウトして kickstart。
+#   thinking は mlx-serve のサーバ既定が off で、既定を変えるフラグが無い (--reasoning-budget は上限のみ、26.9.2 でも同じ)。
+#   llama.cpp 時代と同じ「既定 thinking on」にするため、llama-swap の filters.setParams で
+#   enable_thinking を注入している (2026-09-05)。2026-09-12 から llama-swap v255 の set-if-undefined
+#   (キー末尾の `?`、PR #1075) を使い、クライアントが enable_thinking を送らないときだけ true にする。
+#   クライアントが明示的に false を送れば尊重される (llama.cpp 時代と同じ挙動)。Hermes は enable_thinking を
+#   送らないので常時 on のまま。⚠️ `?` 付きキーは v255 以降専用 — 旧 llama-swap では `enable_thinking?` という
+#   無効キーがそのまま上流に渡り thinking が off になる。
 #
 # ⚠️ メモリ: mlx-serve は重み 67〜70GB を wired (退避不可) で持ち、推論中はシステムの wired が
 #    78〜90GB に達する (Metal wired limit は起動時に 110,100MB へ引き上げられる)。上限を超えると
 #    Metal OOM でプロセスが即死するので、必ず llama-swap の排他スワップの中で動かすこと。
+#    (26.9.2 から単一プロセス内の長文プロンプト起因 OOM は当該リクエストだけエラーになり、サーバは生き残る
+#     とされる。二重常駐は依然として不可。実機未確認。)
 #    手動で mlx-serve を単独起動しているときに llama-swap 側でモデルを立てない (2026-09-05 に実際に落ちた)。
 #
 # llama.cpp (GGUF) 経路は 2026-09-05 に撤去。バイナリ (~/.local/opt/llama.cpp、b10769) は戻し用に残置、
@@ -84,7 +89,7 @@ models:
     checkEndpoint: /health
     filters:
       setParams:
-        enable_thinking: true
+        enable_thinking?: true
     ttl: 7200
     aliases:
       - flash-next
@@ -119,7 +124,7 @@ models:
     checkEndpoint: /health
     filters:
       setParams:
-        enable_thinking: true
+        enable_thinking?: true
     ttl: 7200
     aliases:
       - abliterated

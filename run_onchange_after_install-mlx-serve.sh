@@ -19,11 +19,14 @@ set -euo pipefail
 # llama-swap は ~/.config/llama-swap/config.yaml の macro `mlx_serve` で
 # ~/.local/opt/mlx-serve/current/mlx-serve-macos-arm64/mlx-serve を参照する。
 #
+# 履歴: 26.9.1 (2026-09-05 導入) → 26.9.2 (2026-09-12、prefix cache 追従 / 長文 OOM でサーバが死なない /
+#       JSON 制約デコード高速化 / MTP の文脈長による自動 on-off。docs/llmdaily20260912.md の (c) 参照)。
+#
 # モデルは ~/.mlx-serve/models/<org>/<repo>/ に置く (`mlx-serve pull <org/repo>` か手動)。
 # ⚠️ `mlx-serve pull` は既存ディレクトリの欠落シャードを検出しないので、手動取得したときは
 #    HF API (?blobs=true) の siblings サイズと全ファイルを照合すること。
-MLX_SERVE_VERSION="26.9.1"
-MLX_SERVE_SHA256="b9bb5178ac2dcfbfa232ffa1e6ce77e87a6408a540cbdaabb66d101d667590b0"
+MLX_SERVE_VERSION="26.9.2"
+MLX_SERVE_SHA256="f2dd5f80d4e50e4ebd57b28e70ce79ed95a657337360784975b610cec50400af"
 
 PREFIX="$HOME/.local/opt/mlx-serve"
 DEST="$PREFIX/mlx-serve-$MLX_SERVE_VERSION"
