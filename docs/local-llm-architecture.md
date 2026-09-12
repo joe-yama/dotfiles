@@ -50,8 +50,8 @@ llama.cpp から mlx-serve へ切り替えた (経緯と実測は `mlxserve-ab-2
 | 部品 | 配置 | 導入経路 | 備考 |
 |---|---|---|---|
 | llama-swap v255 | `/opt/homebrew/bin/llama-swap` | Brewfile (`mostlygeek/llama-swap/llama-swap`) | LaunchAgent `local.llama-swap` (`private_Library/LaunchAgents/`)、ログ `/opt/homebrew/var/log/llama-swap.log` |
-| mlx-serve 26.9.2 | `~/.local/opt/mlx-serve/current/mlx-serve-macos-arm64/mlx-serve` | `run_onchange_after_install-mlx-serve.sh` (GitHub Release tarball、sha256 固定) | `lib/` 同梱、rpath は `@executable_path/lib`。Homebrew formula は使わない |
-| モデルパック | `~/.mlx-serve/models/<org>/<repo>/` | `mlx-serve pull <org/repo>` または並列 curl (`docs/bench/` 参照) | `ngram_table.bin` 32GB は mmap (page cache)、safetensors 100 shard は wired |
+| mlx-serve 26.9.3 | `~/.local/opt/mlx-serve/current/mlx-serve-macos-arm64/mlx-serve` | `run_onchange_after_install-mlx-serve.sh` (GitHub Release tarball、sha256 固定) | `lib/` 同梱、rpath は `@executable_path/lib`。Homebrew formula は使わない |
+| モデルパック | `~/.mlx-serve/models/<org>/<repo>/` | `mlx-serve pull <org/repo>` または並列 curl (`docs/bench/` 参照) | `ngram_table.bin` 32GB は mmap (page cache)、safetensors 100 shard は wired。**NAS バックアップ**: `smb://192.168.0.214/personal_folder/localllm/mlx-serve/models/<org>/<repo>/` (2026-09-17、各パックに `SHA256SUMS` 併置、`releases/` に mlx-serve tarball)。`ddalcu/…-MLX-Serve-4bit` は 2026-09-17 時点で HF から消滅しており (ddalcu org には `mixed-4-8bit` と `iQ-MLX-3.3bpw` のみ)、**NAS が唯一の再取得元** |
 | llama.cpp b10769 (待機) | `~/.local/opt/llama.cpp/current/` | `run_onchange_after_install-llama-cpp.sh` | GGUF は削除済み。戻すときは HF から再取得 (unsloth UD-Q3_K_XL 90GB / mradermacher i1-IQ4_XS 97.5GB) |
 | tailscale serve | tailscaled の状態 (dotfiles 外) | `tailscale serve --bg --https=443 8080` | 8443 → 3080 は dsh web。リセットで消える |
 | Hermes Agent | `~/.local/bin/hermes` (uv tool、Py3.12) | `run_onchange_after_install-uv-tools.sh` | gateway LaunchAgent `ai.hermes.gateway`。cron `local-llm-daily-jp` が毎日 09:00 JST に既定モデルを叩く |
@@ -60,7 +60,7 @@ llama.cpp から mlx-serve へ切り替えた (経緯と実測は `mlxserve-ab-2
 ## メモリの見取り図 (128GB)
 
 - mlx-serve 起動時に Metal の wired limit を **110,100MB** に引き上げる。推論中はシステム全体の wired が **78〜90GB** に達し、アイドル時は 4GB 前後まで戻る。
-- 重み (67〜70GB) は wired = 退避不可。上限を超えると `[METAL] Command buffer execution failed: Insufficient Memory` で**プロセスが即死**する (捕捉不能)。mlx-serve 26.9.2 からは単一プロセス内の長文プロンプト起因 OOM は当該リクエストのエラーに留まりサーバは生き残るとされる (CHANGELOG、実機未確認)。二重常駐は依然として不可。llama.cpp は重みが page cache だったので圧迫時に遅くなるだけだった — 安定性の許容度は下がったが、llama-swap の排他スワップの中にいる限り問題ない。
+- 重み (67〜70GB) は wired = 退避不可。上限を超えると `[METAL] Command buffer execution failed: Insufficient Memory` で**プロセスが即死**する (捕捉不能)。mlx-serve 26.9.2 からは単一プロセス内の長文プロンプト起因 OOM は当該リクエストのエラーに留まりサーバは生き残るとされる (CHANGELOG、実機未確認)。二重常駐は依然として不可。26.9.3 からは Flash-Next の prefill が 8192 トークン刻みになり (メモリが許す場合)、ピークが約 +3GB 増えるとされる (CHANGELOG)。llama.cpp は重みが page cache だったので圧迫時に遅くなるだけだった — 安定性の許容度は下がったが、llama-swap の排他スワップの中にいる限り問題ない。
 - n-gram 表 32GB は mmap で page cache 任せ。起動時に warm (約 5 秒) するので初回長文が遅くならない。
 - KV: 262K で数 GB。prefix cache は既定 2GB。
 

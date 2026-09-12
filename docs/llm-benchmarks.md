@@ -12,6 +12,20 @@
 > 同日、mlx-serve v26.9.1 の実機 A/B (Flash-Next 4bit: short 70.3 / 24k 後 57.9 tok/s、llama.cpp UD-Q3_K_XL の 2.1〜2.2 倍) を
 > 実施。詳細は検証レポート (mlxserve-ab-report-20260905.md) を参照。
 
+## Smoke — mlx-serve 26.9.3 更新 (2026-09-17)
+
+26.9.2 → 26.9.3 更新直後の llama-swap 経由スモーク (`docs/bench/bench_ab.py` を各エントリ 1 回、short 3 run / long 2 run、順序反転なし、
+**NAS への 200GB バックアップ rsync と併走した非ベンチ条件**)。thinking on/off・tools 4/4・`json_schema` 出力で thinking 維持 (#407) を確認。
+
+| Alias | short decode | 24k 後 decode | 24k prefill (2 run 目) | 備考 |
+|---|---:|---:|---:|---|
+| `qwen38-flash-next` | 68.9 | 60.3 | 730 | 09-05 基準 70.3 / 57.9 / 694。json_schema で reasoning 190 tok、JSON 有効 |
+| `qwen38-flash-next-uncensored` | 57.4 | 50.3 | 730 | 09-05 基準 56.1 / 47.9 / 700。json_schema で reasoning 95 tok、JSON 有効 |
+
+- 24k 後 decode は両エントリで +2.4 tok/s (26.9.3 の MoE down-projection 高速化と整合)。short は誤差内。
+- wired ピーク 88.2GB (memsample 5 秒間隔、24k prefill 中)。26.9.3 の「8192 刻み prefill で +3GB」を含めても 09-05 の 78〜90GB の範囲内。
+- long 1 run 目の prefill (431〜454) は初回ロード直後 + rsync 併走のため低い。2 run 目 730 を採用。
+
 ## Results — mlx-serve 切り替え (2026-09-05)
 
 mlx-serve v26.9.1 (MLX 0.32.2) vs llama.cpp b10769。順序反転 2 周・各周 3 run 中央値、一意スタンプで cache 無効化。
