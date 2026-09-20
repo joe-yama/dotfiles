@@ -6,6 +6,10 @@
 - `jj split` is interactive-only — use `jj new` + `jj restore --from <change>` instead
 - `JJ_EDITOR=true jj squash` to suppress editor
 - `git-secrets` hooks active — commits scanned for AWS/GitHub PAT patterns
+- GitHub 向けの署名も認証も 1Password Agent を経由しない — 承認ダイアログで Agent が止まるため。`op-ssh-sign` にも `IdentityAgent` の既定にも戻さない
+- 鍵はディスク上に 4 本。署名 `~/.ssh/git-signing-{work,personal}`、push/fetch 認証 `~/.ssh/git-auth-{work,personal}`
+- 4 本とも `run_onchange_after_gen-git-keys.sh` が生成する (chezmoi/Git 管理外・マシンごと)。新しいマシンでは GitHub に要登録 — 署名鍵は **Signing key**、認証鍵は **Authentication key**
+- jj は署名しない (`signing.backend = "none"`) — 署名が付くのは `git commit` を直接使ったときだけ
 
 ## chezmoi Workflow
 
@@ -28,5 +32,6 @@
 - `dot_claude/dot_env`: plain file (NOT template) with native `op://` references。
   `~/.zshrc` の `_op_env_refresh` が `op inject` でこれを解決し `$TMPDIR/claude-mcp-env` (0600, TTL 8h) にキャッシュする。
   `claude` は zsh 関数でラップされており、起動時にキャッシュを更新して環境変数として MCP サーバーに継承させる
-- identity (git/jj の name・email・signingkey) は `.chezmoi.toml.tmpl` の `[data.identity.*]` 経由。
-  参照側は `{{ .identity.work.email }}` のように書く — テンプレートで `onepasswordRead` を直接呼ばない
+- identity (git/jj の name・email) は `.chezmoi.toml.tmpl` の `[data.identity.*]` 経由。
+  参照側は `{{ .identity.work.email }}` のように書く — テンプレートで `onepasswordRead` を直接呼ばない。
+  `[data.identity.*.signingkey]` は SSH **認証**鍵の控えで、コミット署名には使っていない

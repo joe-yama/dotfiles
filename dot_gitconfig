@@ -23,8 +23,9 @@
 	required = true
 [gpg]
 	format = ssh
-[gpg "ssh"]
-	program = /Applications/1Password.app/Contents/MacOS/op-ssh-sign
+# gpg.ssh.program はあえて設定しない = 既定の ssh-keygen を使う。
+# 1Password の op-ssh-sign はコミットのたびに承認ダイアログを出すため撤去した。
+# 署名鍵はディスク上の専用鍵 (~/.ssh/git-signing-*) — user.signingkey を参照。
 [gtr "editor"]
 	default = code
 [alias]

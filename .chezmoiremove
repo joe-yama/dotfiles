@@ -1,0 +1,5 @@
+# 1Password SSH Agent 用の公開鍵ヒントファイル。
+# GitHub 認証をディスク上の専用鍵 (~/.ssh/git-auth-*) に切り替えて
+# Agent を経由しなくなったため不要。
+.ssh/github-work.pub
+.ssh/github-personal.pub

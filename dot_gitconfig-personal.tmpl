@@ -1,6 +1,8 @@
 [user]
 	name = {{ .identity.personal.name }}
 	email = {{ .identity.personal.email }}
-	signingkey = {{ .identity.personal.signingkey }}
+	# 署名はディスク上の専用鍵で行う (1Password Agent を経由しない → 承認プロンプトなし)。
+	# 鍵は run_onchange_after_gen-git-keys.sh が生成する。
+	signingkey = ~/.ssh/git-signing-personal
 [url "git@github-personal:"]
 	insteadOf = git@github.com:

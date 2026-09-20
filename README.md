@@ -39,7 +39,7 @@ chezmoi + 1Password CLI で管理する macOS 設定ファイル群。シェル�
 
 | ツール | 用途 | 設定ファイル |
 |--------|------|-------------|
-| **Git** | メインの VCS。delta によるリッチな diff、1Password による SSH 署名、rerere による競合解決の記憶 | `dot_gitconfig` |
+| **Git** | メインの VCS。delta によるリッチな diff、ローカル専用鍵による SSH 署名、rerere による競合解決の記憶 | `dot_gitconfig` |
 | **[Jujutsu (jj)](https://github.com/jj-vcs/jj)** | Git 互換の次世代 VCS。Git と colocated で運用し、日常の操作は jj を使用 | `dot_config/jj/config.toml.tmpl` |
 | **[lazygit](https://github.com/jesseduffield/lazygit)** | Git の TUI クライアント | — |
 | **[ghq](https://github.com/x-motemen/ghq)** | リポジトリのローカル管理。`~/repo/` 以下に統一的に配置 | — |
@@ -80,7 +80,7 @@ chezmoi + 1Password CLI で管理する macOS 設定ファイル群。シェル�
 
 | ツール | 用途 |
 |--------|------|
-| **[1Password](https://1password.com/)** | パスワード管理、SSH Agent（秘密鍵の一元管理）、chezmoi テンプレートへのシークレット注入 |
+| **[1Password](https://1password.com/)** | パスワード管理、SSH Agent（GitHub 以外のホスト向け／GitHub の署名・認証では使わない）、chezmoi テンプレートへのシークレット注入 |
 | **[git-secrets](https://github.com/awslabs/git-secrets)** | コミット前に AWS キーや GitHub PAT のリークを自動検出 |
 | **[gitleaks](https://github.com/gitleaks/gitleaks)** | リポジトリ全体のシークレットスキャン |
 
@@ -128,6 +128,7 @@ chezmoi のソースディレクトリ。ファイル名のプレフィックス
 | `run_onchange_after_claude-mcp.sh.tmpl` | (run script) | Claude MCP servers sync (on settings.json change) |
 | `run_onchange_after_install-ccusage.sh` | (run script) | ccusage (Claude Code 使用量分析) インストール |
 | `run_onchange_after_build-claude-icon-font.sh.tmpl` | (run script) | SketchyBar 用 Claude アイコンフォント生成 |
+| `run_onchange_after_gen-git-keys.sh` | (run script) | Git の署名鍵・認証鍵を生成（無ければ作成） |
 
 ## Secrets Management
 
@@ -169,12 +170,59 @@ email = {{ .identity.work.email }}
 - **SSH**: `private_dot_ssh/config.d/github.conf` でホストエイリアス定義（`github.com` = 会社、`github-personal` = 個人）
 - **Git**: `includeIf gitdir:` でディレクトリベースのID切り替え（`~/repo/github-personal/joe-yama/` 等）
 - **URL書き換え**: `url.insteadOf` で ghq の通常フローを維持しつつ自動的に正しいSSHホストを使用
-- **1Password SSH Agent**: 各鍵の公開鍵を `~/.ssh/*.pub` に配置し、Agentへのヒントとして使用
+- **認証鍵**: `IdentityAgent none` で 1Password Agent を参照せず、ディスク上の `~/.ssh/git-auth-{work,personal}` を直接使う（→ [Git SSH Keys](#git-ssh-keys)）
 
 ```bash
 # 接続テスト
 ssh -T github.com            # 会社アカウント
 ssh -T github-personal       # プライベートアカウント
+```
+
+## Git SSH Keys
+
+GitHub 向けの鍵は署名・認証とも **1Password Agent ではなくディスク上の専用鍵**を使う。1Password Agent は鍵を使うたびに承認ダイアログを出し、Agent による自動コミット・自動 push が承認待ちで止まるため、GitHub に関しては経由させていない。
+
+| identity | 署名鍵（`user.signingkey`） | 認証鍵（`IdentityFile`） | 適用先 |
+|----------|------------------------|---------------------|--------|
+| 会社 | `~/.ssh/git-signing-work` | `~/.ssh/git-auth-work` | `~/.gitconfig.local` / `Host github.com`（デフォルト） |
+| 個人 | `~/.ssh/git-signing-personal` | `~/.ssh/git-auth-personal` | `~/.gitconfig-personal` / `Host github-personal` |
+
+4 本とも `run_onchange_after_gen-git-keys.sh` が `chezmoi apply` 時に生成する（既にあれば何もしない）。秘密鍵はパスフレーズなしでディスク上に置き、chezmoi・Git のどちらの管理下にも入れない（= マシンごとに別の鍵になる）。
+
+1Password Agent 自体は残してあり（`SSH_AUTH_SOCK` は変更していない）、GitHub 以外のホストでは従来どおり使える。
+
+### 承認プロンプトを復活させない設定
+
+- `gpg.ssh.program` に `op-ssh-sign` を設定しない（署名が Agent 経由になる）
+- `github.conf` の `IdentityAgent none` を消さない（認証が Agent 経由に戻る）
+
+### 署名の範囲
+
+`git commit` は常に SSH 署名を行う（`commit.gpgsign = true` / `gpg.format = ssh`）が、**jj は署名しない**（`signing.backend = "none"`）。日常の操作は jj なので、実際に署名が付くのは `git commit` を直接使ったときだけ。
+
+`gpg.ssh.allowedSignersFile` は未設定なので、ローカルでの `git log --show-signature` による検証はできない（GitHub 側の Verified 判定には影響しない）。
+
+### 新しいマシンでのセットアップ
+
+```bash
+chezmoi apply                      # 鍵が生成され、公開鍵が表示される
+cat ~/.ssh/git-signing-*.pub ~/.ssh/git-auth-*.pub   # 後から確認する場合
+```
+
+表示された公開鍵を、対応する GitHub アカウントに登録する。**種別を間違えると機能しない** — 署名鍵は Signing Key、認証鍵は Authentication Key。認証鍵は登録するまで push / fetch ができない。署名鍵は未登録でもコミットは成功するが GitHub 上で "Verified" にならない。
+
+```bash
+# Settings → SSH and GPG keys → New SSH key → Key type を選ぶ
+# gh CLI を使う場合（署名鍵の追加には admin:ssh_signing_key スコープが必要）
+gh ssh-key add ~/.ssh/git-signing-work.pub --type signing        --title "git-signing-work@$(hostname -s)"
+gh ssh-key add ~/.ssh/git-auth-work.pub    --type authentication --title "git-auth-work@$(hostname -s)"
+```
+
+接続確認：
+
+```bash
+ssh -T git@github.com         # → Hi <work-user>!      （承認ダイアログが出ないこと）
+ssh -T git@github-personal    # → Hi <personal-user>!
 ```
 
 ## Machine-Specific Config
