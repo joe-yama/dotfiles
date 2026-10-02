@@ -9,7 +9,7 @@ chezmoi + 1Password CLI で管理する macOS 設定ファイル群。シェル�
 | ツール | 用途 | 設定ファイル |
 |--------|------|-------------|
 | **[Ghostty](https://ghostty.org/)** | メインのターミナルエミュレータ。GPU アクセラレーション対応、フォントは PlemolJP Console NF（日本語等幅） | `dot_config/ghostty/config` |
-| **[Zellij](https://zellij.dev/)** | ターミナルマルチプレクサ。ペイン分割・タブ管理・WASM プラグインによる拡張が可能 | `dot_config/zellij/` |
+| **[herdr](https://herdr.dev/)** | AI コーディングエージェント向けのターミナルワークスペース管理。prefix は `Ctrl+space`、操作は zellij 時代のキー配置を踏襲 | `dot_config/herdr/` |
 | **tmux** | ターミナルマルチプレクサ（最小構成、passthrough のみ有効） | `dot_tmux.conf` |
 
 ### シェル
@@ -69,7 +69,7 @@ chezmoi + 1Password CLI で管理する macOS 設定ファイル群。シェル�
 
 | ツール | 用途 |
 |--------|------|
-| **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)** | AI コーディングアシスタント。権限・フック・MCP サーバー（Atlassian 等）を設定。Zellij フック統合、`run_onchange_after_claude-mcp.sh.tmpl` で MCP サーバーを自動同期 |
+| **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)** | AI コーディングアシスタント。権限・フック・MCP サーバー（Atlassian 等）を設定。`run_onchange_after_claude-mcp.sh.tmpl` で MCP サーバーを自動同期 |
 | **[Gemini CLI](https://github.com/google-gemini/gemini-cli)** | Google の AI CLI ツール。VS Code 拡張（Gemini Code Assist）と連携 |
 | **GitHub Copilot** | AI コード補完。VS Code 拡張として導入 |
 | **[Raycast](https://www.raycast.com/)** | ランチャー・生産性ツール |
@@ -115,7 +115,7 @@ chezmoi のソースディレクトリ。ファイル名のプレフィックス
 | `dot_gitconfig-personal.tmpl` | `~/.gitconfig-personal` | Personal identity (1Password) |
 | `private_dot_ssh/` | `~/.ssh/` | SSH config (dir 0700, `private_` files 0600) |
 | `dot_config/` | `~/.config/` | ghostty, aerospace, borders, sketchybar, jj, gh, yazi, helix, mise, worktrunk, opencode |
-| `dot_config/zellij/` | `~/.config/zellij/` | Zellij config + layouts (`default.kdl`, `dev.kdl`, `quad.kdl`) |
+| `dot_config/herdr/` | `~/.config/herdr/` | herdr config (`config.toml`) |
 | `dot_config/jj/config.toml.tmpl` | `~/.config/jj/config.toml` | jj identity (1Password) |
 | `dot_claude/` | `~/.claude/` | Claude Code settings + env |
 | `.claude/rules/` | — | Claude Code ツール固有ルール（パススコープで自動読み込み） |
@@ -126,7 +126,6 @@ chezmoi のソースディレクトリ。ファイル名のプレフィックス
 | `run_onchange_after_claude-mcp.sh.tmpl` | (run script) | Claude MCP servers sync (on settings.json change) |
 | `run_onchange_after_install-ccusage.sh` | (run script) | ccusage (Claude Code 使用量分析) インストール |
 | `run_onchange_after_build-claude-icon-font.sh.tmpl` | (run script) | SketchyBar 用 Claude アイコンフォント生成 |
-| `run_onchange_zellij-plugins.sh` | (run script) | Zellij plugin download |
 
 ## Secrets Management
 
@@ -234,20 +233,6 @@ brew bundle --file="$HOME/.Brewfile.local"
 ```
 
 `chezmoi apply` 時に `~/.Brewfile.local` が存在すれば自動で `brew bundle` が実行される。削除する場合は `~/.Brewfile.local` から該当行を削除し、`brew uninstall <pkg>` で手動削除する。
-
-## Zellij
-
-プラグインはプロキシ環境下で Zellij が直接ダウンロードできないため、`run_onchange_zellij-plugins.sh` で事前ダウンロードし `~/.config/zellij/plugins/` に配置。config/layout からは `file:` で参照。
-
-### プラグインのバージョン更新
-
-```bash
-# 1. run_onchange_zellij-plugins.sh 内の URL を更新
-# 2. 古い .wasm を削除
-rm ~/.config/zellij/plugins/<plugin>.wasm
-# 3. スクリプト再実行
-bash run_onchange_zellij-plugins.sh
-```
 
 ## Commands
 
