@@ -33,6 +33,7 @@ chezmoi + 1Password CLI で管理する macOS 設定ファイル群。シェル�
 | **[AeroSpace](https://github.com/nikitabobko/AeroSpace)** | タイル型ウィンドウマネージャ。Alt キーベースのキーバインドでウィンドウ配置を管理 | `dot_config/aerospace/aerospace.toml` |
 | **[SketchyBar](https://github.com/FelixKratz/SketchyBar)** | カスタムメニューバー。ワークスペース、バッテリー、時計、Wi-Fi、VPN、IME 等を表示（Catppuccin Mocha テーマ） | `dot_config/sketchybar/` |
 | **[Borders](https://github.com/FelixKratz/JankyBorders)** | アクティブウィンドウにグロー付きボーダーを表示 | `dot_config/borders/executable_bordersrc` |
+| **[Karabiner-Elements](https://karabiner-elements.pqrs.org/)** | キーリマップ。CapsLock→Control、左/右 Command 単体で英数/かな。Karabiner 有効時は macOS の修飾キー設定が効かないため CapsLock もここで設定。GUI で変更したら `chezmoi re-add` で取り込む | `dot_config/private_karabiner/private_karabiner.json` |
 
 ### バージョン管理
 
@@ -116,6 +117,7 @@ chezmoi のソースディレクトリ。ファイル名のプレフィックス
 | `private_dot_ssh/` | `~/.ssh/` | SSH config (dir 0700, `private_` files 0600) |
 | `dot_config/` | `~/.config/` | ghostty, aerospace, borders, sketchybar, jj, gh, yazi, helix, mise, worktrunk, opencode |
 | `dot_config/herdr/` | `~/.config/herdr/` | herdr config (`config.toml`) |
+| `dot_config/private_karabiner/` | `~/.config/karabiner/` | Karabiner-Elements (dir 0700, `karabiner.json` 0600; アプリが書き換える揮発ファイル) |
 | `dot_config/jj/config.toml.tmpl` | `~/.config/jj/config.toml` | jj identity (1Password) |
 | `dot_claude/` | `~/.claude/` | Claude Code settings + env |
 | `.claude/rules/` | — | Claude Code ツール固有ルール（パススコープで自動読み込み） |
