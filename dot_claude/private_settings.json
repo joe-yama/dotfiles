@@ -119,7 +119,6 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "Opus",
   "hooks": {
     "PreToolUse": [
       {
@@ -260,16 +259,16 @@
     "superpowers@claude-plugins-official": true,
     "github@claude-plugins-official": true,
     "claude-md-management@claude-plugins-official": true,
-    "hookify@claude-plugins-official": true,
-    "caveman@caveman": false,
-    "pyright-lsp@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true
+    "hookify@claude-plugins-official": false,
+    "pyright-lsp@claude-plugins-official": false,
+    "typescript-lsp@claude-plugins-official": true,
+    "typesafe@typesafe-ai": true
   },
   "extraKnownMarketplaces": {
-    "caveman": {
+    "typesafe-ai": {
       "source": {
         "source": "github",
-        "repo": "JuliusBrussee/caveman"
+        "repo": "typesafe-ai/skills"
       }
     }
   },
@@ -327,11 +326,6 @@
     ]
   },
   "effortLevel": "high",
-  "modelSettings": {
-    "claude-opus-5": {
-      "effortLevel": "xhigh"
-    }
-  },
   "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
   "verbose": true,
