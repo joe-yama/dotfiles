@@ -1,0 +1,66 @@
+# herdr 設定 (zellij からの移行)
+# zellij の「Ctrl+space → 1キー」モーダル操作をそのまま prefix 方式で再現する。
+# 検証: herdr config check / 反映: herdr server reload-config
+
+onboarding = false
+
+[theme]
+name = "catppuccin"
+
+[keys]
+prefix = "ctrl+space"
+
+# --- ペイン (zellij pane モード: h j k l v s q) ---
+focus_pane_left = "prefix+h"
+focus_pane_down = "prefix+j"
+focus_pane_up = "prefix+k"
+focus_pane_right = "prefix+l"
+split_vertical = "prefix+v"
+split_horizontal = "prefix+s"
+close_pane = "prefix+q"
+resize_mode = "prefix+alt+r"   # zellij 側は未割当。r はタブ名変更に譲る
+
+# --- タブ (zellij: t x n p r 1-9) ---
+new_tab = "prefix+t"
+close_tab = "prefix+x"
+next_tab = "prefix+n"
+previous_tab = "prefix+p"
+rename_tab = "prefix+r"
+switch_tab = "prefix+1..9"
+
+# --- セッション / ワークスペース (zellij: D, S, w) ---
+detach = "prefix+shift+d"
+close_workspace = "prefix+alt+x"
+workspace_picker = "prefix+shift+s"
+goto = "prefix+w"
+
+# --- その他 ---
+help = "prefix+f"              # zellij_forgot (f) 相当
+settings = "prefix+shift+o"    # 既定の prefix+s は split に譲る
+
+# zellij の Quit (Ctrl q) 相当: サーバーごと停止
+[[keys.command]]
+key = "prefix+ctrl+q"
+type = "shell"
+command = "herdr server stop"
+
+# ghost (g) 相当: フローティングのシェル
+[[keys.command]]
+key = "prefix+g"
+type = "popup"
+command = "zsh"
+width = "80%"
+height = "80%"
+
+[ui]
+hide_tab_bar_when_single_tab = false
+# zjstatus の {datetime} 相当
+tab_bar_right = [{ type = "datetime" }]
+
+[experimental]
+# IME ON でも prefix 後のキーを ASCII として受ける
+# (zellij で必要だった Ctrl+<key> 併記と、数字ジャンプの穴が不要になる)
+switch_ascii_input_source_in_prefix = true
+# IME 候補ウィンドウが Claude Code 等の入力位置を追従するように
+reveal_hidden_cursor_for_cjk_ime = true
+cjk_ime_agents = ["claude", "pi", "opencode"]
