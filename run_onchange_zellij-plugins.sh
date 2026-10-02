@@ -13,7 +13,6 @@ zellij_forgot.wasm|https://github.com/karimould/zellij-forgot/releases/download/
 room.wasm|https://github.com/rvcas/room/releases/download/v1.2.1/room.wasm
 harpoon.wasm|https://github.com/Nacho114/harpoon/releases/download/v0.3.0/harpoon.wasm
 multitask.wasm|https://github.com/leakec/multitask/releases/download/v0.44.2/multitask.wasm
-zj-docker.wasm|https://github.com/dj95/zj-docker/releases/latest/download/zj-docker.wasm
 zellaude.wasm|https://github.com/ishefi/zellaude/releases/latest/download/zellaude.wasm
 zjstatus.wasm|https://github.com/dj95/zjstatus/releases/latest/download/zjstatus.wasm
 zellij-newtab-plus.wasm|https://github.com/AlexZasorin/zellij-newtab-plus/releases/download/v0.6.0/zellij-newtab-plus.wasm
