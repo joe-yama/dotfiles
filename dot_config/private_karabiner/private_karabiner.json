@@ -4,7 +4,7 @@
             "complex_modifications": {
                 "rules": [
                     {
-                        "description": "左Command単体でGoogle日本語入力の英数、右Command単体でかな（長押し・他キー併用時は通常のCommand）",
+                        "description": "左Command単体で英数キー、右Command単体でかなキー（長押し・他キー併用時は通常のCommand）",
                         "manipulators": [
                             {
                                 "from": {
@@ -26,9 +26,7 @@
                                 ],
                                 "to_if_alone": [
                                     {
-                                        "select_input_source": {
-                                            "input_source_id": "^com\\.google\\.inputmethod\\.Japanese\\.Roman$"
-                                        }
+                                        "key_code": "japanese_eisuu"
                                     }
                                 ],
                                 "type": "basic"
@@ -53,9 +51,7 @@
                                 ],
                                 "to_if_alone": [
                                     {
-                                        "select_input_source": {
-                                            "input_source_id": "^com\\.google\\.inputmethod\\.Japanese\\.base$"
-                                        }
+                                        "key_code": "japanese_kana"
                                     }
                                 ],
                                 "type": "basic"
