@@ -1,0 +1,8 @@
+[user]
+    name = {{ .identity.ccoe.name }}
+    email = {{ .identity.ccoe.email }}
+    signingkey = ~/.ssh/github-ccoe
+[gpg "ssh"]
+    program = ssh-keygen
+[url "git@github-ccoe:"]
+    insteadOf = git@github.com:

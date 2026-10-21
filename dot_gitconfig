@@ -56,3 +56,16 @@
 	navigate = true
 	side-by-side = true
 	syntax-theme = Catppuccin Mocha
+# gh auth setup-git が書き込む HTTPS 用 credential helper
+[credential "https://github.com"]
+	helper = 
+	helper = !/opt/homebrew/bin/gh auth git-credential
+[credential "https://gist.github.com"]
+	helper = 
+	helper = !/opt/homebrew/bin/gh auth git-credential
+[credential "https://github.tmc-stargate.com"]
+	helper = 
+	helper = !/opt/homebrew/bin/gh auth git-credential
+# ccoe は gpg.ssh.program を上書きするため、[gpg "ssh"] より後 (末尾) に置くこと
+[includeIf "gitdir:~/repo/github.com/josuke-yamane/"]
+	path = ~/.gitconfig-ccoe

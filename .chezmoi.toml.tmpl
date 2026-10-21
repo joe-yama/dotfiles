@@ -11,6 +11,11 @@
   email      = "{{ onepasswordRead "op://work/Git Identity TMC/email" }}"
   signingkey = "{{ onepasswordRead "op://work/Git Identity TMC/signingkey" }}"
 
+# CCoE (josuke-yamane): 署名鍵はローカルの ~/.ssh/github-ccoe なので signingkey は持たない
+[data.identity.ccoe]
+  name       = "{{ onepasswordRead "op://work/Git Identity CCoE/name" }}"
+  email      = "{{ onepasswordRead "op://work/Git Identity CCoE/email" }}"
+
 [data.identity.personal]
   name       = "{{ onepasswordRead "op://Personal/Git Identity Personal/name" }}"
   email      = "{{ onepasswordRead "op://Personal/Git Identity Personal/email" }}"

@@ -22,6 +22,15 @@ user.email = "{{ .identity.personal.email }}"
 user.name = "{{ .identity.personal.name }}"
 user.email = "{{ .identity.personal.email }}"
 
+# CCoE repos: ~/repo/github.com/josuke-yamane/ (signing key is a local file, not 1Password)
+[[--scope]]
+--when.repositories = ["~/repo/github.com/josuke-yamane"]
+user.name = "{{ .identity.ccoe.name }}"
+user.email = "{{ .identity.ccoe.email }}"
+signing.behavior = "own"
+signing.backend = "ssh"
+signing.key = "~/.ssh/github-ccoe"
+
 # chezmoi source directory: ~/dotfiles (outside ghq's ~/repo tree)
 [[--scope]]
 --when.repositories = ["~/dotfiles"]
