@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>local.raycast-proxy</string>
+	<!-- 社内 VPN のシステムプロキシは PAC のみで、Raycast の Node backend は PAC を評価せず
+	     直接接続してしまい AI が Connection Failed になる。Raycast 設定「Use System Proxy Settings」を
+	     オフにし、.zshrc.local (マシン固有) の proxy 環境変数を渡して起動する。
+	     launchctl setenv は LaunchServices 起動のアプリに渡らないため open --env を使う。
+	     .zshrc.local に proxy が無いマシンでは env なしで起動するだけ。
+	     Raycast 自身の「Launch at login」はオフにしておくこと (先に起動すると env が付かない) -->
+	<key>ProgramArguments</key>
+	<array>
+		<string>/bin/zsh</string>
+		<string>-c</string>
+		<string>[ -f "$HOME/.zshrc.local" ] &amp;&amp; source "$HOME/.zshrc.local"; args=(); for v in HTTPS_PROXY HTTP_PROXY NO_PROXY; do [ -n "${(P)v}" ] &amp;&amp; args+=(--env "$v=${(P)v}"); done; exec /usr/bin/open -a Raycast "${args[@]}"</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+</dict>
+</plist>
