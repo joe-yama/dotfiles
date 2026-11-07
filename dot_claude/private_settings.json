@@ -98,16 +98,12 @@
       "Bash(ln:*)"
     ],
     "ask": [
-      "Bash(git push:*)",
       "Bash(jj git push:*)",
-      "Bash(gh pr create:*)",
       "Bash(gh pr merge:*)",
       "Bash(gh pr close:*)",
       "Bash(gh pr comment:*)",
       "Bash(gh pr review:*)",
       "Bash(gh pr edit:*)",
-      "Bash(gh issue create:*)",
-      "Bash(gh issue comment:*)",
       "Bash(gh issue edit:*)",
       "Bash(gh release create:*)",
       "Bash(gh repo create:*)",
@@ -119,6 +115,7 @@
     ],
     "defaultMode": "auto"
   },
+  "model": "sonnet",
   "hooks": {
     "PreToolUse": [
       {
@@ -145,30 +142,34 @@
       }
     ]
   },
+  "enableWorkflows": true,
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline-command.sh"
   },
   "enabledPlugins": {
+    "skill-creator@claude-plugins-official": false,
     "superpowers@claude-plugins-official": true,
-    "github@claude-plugins-official": true,
+    "github@claude-plugins-official": false,
     "claude-md-management@claude-plugins-official": true,
-    "hookify@claude-plugins-official": false,
+    "frontend-design@claude-plugins-official": false,
+    "hookify@claude-plugins-official": true,
+    "caveman@caveman": false,
     "pyright-lsp@claude-plugins-official": false,
-    "typescript-lsp@claude-plugins-official": true,
-    "typesafe@typesafe-ai": true
+    "typescript-lsp@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
-    "typesafe-ai": {
+    "caveman": {
       "source": {
         "source": "github",
-        "repo": "typesafe-ai/skills"
+        "repo": "JuliusBrussee/caveman"
       }
     }
   },
+  "outputStyle": "Concise",
   "language": "japanese",
   "sandbox": {
-    "enabled": true,
+    "enabled": false,
     "allowUnsandboxedCommands": true,
     "network": {
       "allowedDomains": [
@@ -220,11 +221,52 @@
     ]
   },
   "effortLevel": "high",
+  "modelSettings": {
+    "claude-opus-5": {
+      "effortLevel": "high"
+    },
+    "claude-fable-5-1": {
+      "effortLevel": "high"
+    },
+    "claude-opus-5-5": {
+      "effortLevel": "medium"
+    }
+  },
   "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
+  "skipWorkflowUsageWarning": true,
   "verbose": true,
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
+  "autoMode": {
+    "environment": [
+      "### Org-wide",
+      "**Organization**: None configured",
+      "**Cloud provider(s)**: None configured",
+      "**Repository visibility**: assume private unless the remote host and repo name indicate otherwise, or a visibility check in the transcript shows public — gh visibility lookup was not queryable here; origin is github.com:joe-yama/dotfiles.git",
+      "**Internal sharing / snippet hosting**: None configured — treat public paste/gist services as outside the trust boundary",
+      "**Secrets management**: 1Password CLI (`op`) — used for `op://` template references and `op inject` caching to `$TMPDIR/claude-mcp-env` (0600, TTL 8h); commit signing keys live on-disk at `~/.ssh/git-signing-{work,personal}` and do not go through 1Password",
+      "**Default / protected branches**: main (default) — protection status not queryable here (gh lookup unavailable)",
+      "**CI/CD deploy targets**: None configured",
+      "**Network posture**: None configured",
+      "**Host containment**: None configured — assume Claude Code runs on an ordinary developer machine with open internet",
+      "**Source control**: jj (colocated with git) for this repo; `git` reserved only for operations jj doesn't support (e.g. signing configs) — trusted repo and its remote only, no additional orgs configured",
+      "**Trusted internal domains**: None configured",
+      "**Trusted cloud buckets**: None configured",
+      "**Key internal services**: `josukes-macbook-pro.tail97ab8.ts.net` (Tailscale host reachable from this project, seen 12× in contacted hosts)",
+      "**Internal package registry**: None configured",
+      "**Sensitive data locations & audiences**: files matching `*.secrets` (gitignored); `.tmpl` files referencing `op://vault/item/field`; `dot_claude/dot_env` (plain file with native `op://` references, cached to `$TMPDIR/claude-mcp-env`) — share only with audiences cleared at the [named+specifics] bar",
+      "**Data retention / declassification**: None configured",
+      "**Sensitive remote targets**: any namespace, host, or container whose name carries `prod` or `production` as a whole word or name segment",
+      "**Protected deployment namespaces / environments**: None configured — fall back to the Sensitive remote targets heuristic",
+      "**Protected IaC scopes**: IAM, RBAC, networking, quota, and node-pool resources; anything whose name or tag carries `prod` or `production` as a whole word or name segment",
+      "### User-specific",
+      "**Primary use of Claude Code**: dotfiles/chezmoi-managed macOS system configuration management (software development)",
+      "**Trusted repo**: `/Users/joe/dotfiles` and its remote `github.com:joe-yama/dotfiles.git`",
+      "**Org-specific CLIs**: `jj` (Jujutsu VCS, colocated with git — use jj not git for VCS ops), `chezmoi` (dotfiles apply/diff/verify), `hermes`, `op` (1Password CLI)",
+      "**routine under /Users/joe/dotfiles/ prefix**: `chezmoi apply <target>`, `chezmoi diff <target>`, `chezmoi verify`, `jj` VCS operations (status, log, diff, describe, new, bookmark, git push/fetch, rebase, squash)"
+    ]
+  },
   "mcpServers": {
     "atlassian": {
       "type": "stdio",
