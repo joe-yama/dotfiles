@@ -24,12 +24,15 @@ set -euo pipefail
 #       → 26.9.3 (2026-09-17、MoE decode / Flash-Next prefill 高速化、JSON schema でも thinking 維持 #407、
 #       共有 system prompt の毎ターン再 prefill 修正 #390、prefill が 8192 刻みになりピーク約 +3GB。
 #       sha256 は Formula 未掲載だったため tarball を取得して実計算。docs/llmdaily20260916.md の (c) 参照)。
+#       → 26.11.1 (2026-11-04、26.9.5〜26.10.3 を飛ばして更新。Flash-Next decode/prefill 高速化、
+#       並列長文の待ち合わせ (OOM 回避)、--os-reserve-gib、投機デコードが既定 on、thinking 予算は
+#       reasoning_effort 未指定で low=2048。sha256 は Formula 掲載値 = Release asset digest)。
 #
 # モデルは ~/.mlx-serve/models/<org>/<repo>/ に置く (`mlx-serve pull <org/repo>` か手動)。
 # ⚠️ `mlx-serve pull` は既存ディレクトリの欠落シャードを検出しないので、手動取得したときは
 #    HF API (?blobs=true) の siblings サイズと全ファイルを照合すること。
-MLX_SERVE_VERSION="26.9.3"
-MLX_SERVE_SHA256="05863d67dc823798ac072ef72824360cbbd868734d2f79516bba153349eef794"
+MLX_SERVE_VERSION="26.11.1"
+MLX_SERVE_SHA256="9acaa7a21b294536c3db9f2683d85079727b4e8db725d34260020499523dc267"
 
 PREFIX="$HOME/.local/opt/mlx-serve"
 DEST="$PREFIX/mlx-serve-$MLX_SERVE_VERSION"

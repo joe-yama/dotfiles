@@ -49,8 +49,8 @@ llama.cpp から mlx-serve へ切り替えた (経緯と実測は `mlxserve-ab-2
 
 | 部品 | 配置 | 導入経路 | 備考 |
 |---|---|---|---|
-| llama-swap v255 | `/opt/homebrew/bin/llama-swap` | Brewfile (`mostlygeek/llama-swap/llama-swap`) | LaunchAgent `local.llama-swap` (`private_Library/LaunchAgents/`)、ログ `/opt/homebrew/var/log/llama-swap.log` |
-| mlx-serve 26.9.3 | `~/.local/opt/mlx-serve/current/mlx-serve-macos-arm64/mlx-serve` | `run_onchange_after_install-mlx-serve.sh` (GitHub Release tarball、sha256 固定) | `lib/` 同梱、rpath は `@executable_path/lib`。Homebrew formula は使わない |
+| llama-swap v269 | `/opt/homebrew/bin/llama-swap` | Brewfile (`mostlygeek/llama-swap/llama-swap`) | LaunchAgent `local.llama-swap` (`private_Library/LaunchAgents/`)、ログ `/opt/homebrew/var/log/llama-swap.log` |
+| mlx-serve 26.11.1 | `~/.local/opt/mlx-serve/current/mlx-serve-macos-arm64/mlx-serve` | `run_onchange_after_install-mlx-serve.sh` (GitHub Release tarball、sha256 固定) | `lib/` 同梱、rpath は `@executable_path/lib`。Homebrew formula は使わない |
 | モデルパック | `~/.mlx-serve/models/<org>/<repo>/` | `mlx-serve pull <org/repo>` または並列 curl (`docs/bench/` 参照) | `ngram_table.bin` 32GB は mmap (page cache)、safetensors 100 shard は wired。**NAS バックアップ**: `smb://192.168.0.214/personal_folder/localllm/mlx-serve/models/<org>/<repo>/` (2026-09-17、各パックに `SHA256SUMS` 併置、`releases/` に mlx-serve tarball)。`ddalcu/…-MLX-Serve-4bit` は 2026-09-17 時点で HF から消滅しており (ddalcu org には `mixed-4-8bit` と `iQ-MLX-3.3bpw` のみ)、**NAS が唯一の再取得元** |
 | llama.cpp b10769 (待機) | `~/.local/opt/llama.cpp/current/` | `run_onchange_after_install-llama-cpp.sh` | GGUF は削除済み。戻すときは HF から再取得 (unsloth UD-Q3_K_XL 90GB / mradermacher i1-IQ4_XS 97.5GB) |
 | tailscale serve | tailscaled の状態 (dotfiles 外) | `tailscale serve --bg --https=443 8080` | 8443 → 3080 は dsh web。リセットで消える |
@@ -73,7 +73,9 @@ llama.cpp から mlx-serve へ切り替えた (経緯と実測は `mlxserve-ab-2
 - 確認コマンド: `curl -s 127.0.0.1:8080/running` (常駐中のモデル)、`curl -s 127.0.0.1:8080/unload` (全アンロード、GET)、`curl -s 127.0.0.1:8080/v1/models`。
 - mlx-serve の `/v1/models` の id はディレクトリ名 (`Qwen3.8-Flash-Next-MLX-Serve-4bit`、org 無し)。llama-swap 側は `useModelName` で読み替える。
 - mlx-serve はストリーム末尾に `timings` を返し、`/health` を持つ。tool call は Qwen の XML 形式を構造化 `tool_calls` に変換する (Hermes 要件)。
-- mlx-serve の MTP (`--mtp`) は本命パックでは効果なし〜負、無検閲パックでは +4〜13%。既定 off で揃えている。
+- mlx-serve の MTP は 26.10.1 から**既定 on** (MTP ヘッド同梱パックは自動ロード、`--no-mtp` で無効)。26.11.1 で cmd を変えずに更新した 2026-11-04 の簡易計測 (1024 トークン生成、thinking off) は本命 87〜93 tok/s・無検閲 89 tok/s で、26.9.1 時代の MTP off (70 / 56) を上回ったため既定 on のまま運用 (順序反転 2 周の正式ベンチは未実施)。
+- **ロード前メモリチェック (preflight)**: mlx-serve は重み + 約 7GB の空きが無いと `Insufficient memory to load model` で起動を拒否し、llama-swap 側は `upstream command exited prematurely` になる。2026-11-03〜04 に Adobe Lightroom (21GB) と Docker Desktop VM (8GB) の常駐で空き判定が 45〜75GB に落ち、Hermes cron を含めて起動に失敗していた。原因は `~/.mlx-serve/logs/mlx-serve-<port>.log` の `[preflight]` 行で確認できる。大物アプリを閉じれば通る (`--skip-mem-preflight` は Metal OOM 即死のリスクがあるので付けていない)。
+- 26.9.5 以降、`reasoning_effort` を指定しない thinking リクエストは low 扱いで思考予算 2048 トークンになる。
 - thinking を一時的に切りたいときは config.yaml の `filters.setParams` をコメントアウトして llama-swap を kickstart する。`--reasoning-budget N` で思考トークン上限だけを絞ることもできる。
 - **並列リクエスト (dsh サブエージェント等) の挙動 (2026-09-06 調査)**: mlx-serve は decode は束ねられるが、**prefill 中は他の全リクエストが 1 トークンも進まない** (77k prefill 中の短文は 127 秒待った)。1 本あたりの decode は並列数で割られる (1 本 50 / 3 本 27 / 6 本 18 tok/s)。100k 級プロンプトが 3 本並ぶと順番待ちが 300 秒を超え、mlx-serve の stall timeout (既定 300 秒) と dsh の `streamIdleTimeoutMs` (既定 300000) が同時に発火 → dsh が 5 回リトライして空転していた。対策: config.yaml の cmd に `--timeout 0` と `--prefix-cache-mem 12GB --prefix-cache-entries 64` (既定 2GB は 65k〜82k トークンで頭打ち。拡張後は 102k プロンプトの 2 回目が 172.7 秒 → 0.3 秒)、`~/.dsh/settings.yaml` に `streamIdleTimeoutMs: 1800000`。llama-swap の `concurrencyLimit` は待ち行列ではなく即拒否なので dsh には逆効果。`--prefill-chunk` を下げてもチャンク境目で decode を挟まない。
 - 更新: `run_onchange_after_install-mlx-serve.sh` の version / sha256 を書き換えて apply → kickstart。旧 version は `~/.local/opt/mlx-serve/` に残る。
