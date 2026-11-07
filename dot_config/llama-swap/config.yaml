@@ -49,6 +49,14 @@
 healthCheckTimeout: 1800
 
 macros:
+  # スワップ直後の preflight 競合対策 (2026-11-08、mlx-serve 26.11.2 で顕在化)。
+  #   llama-swap は旧プロセスの終了を待ってから次を起動するが、wired 70GB がカーネルに戻りきる前に
+  #   新プロセスの preflight が空きを読むと 74〜77GB しか見えず、閾値 (重み + 約 7GB = 75.4 / 77.1GB) を
+  #   割って "Insufficient memory to load model" → llama-swap は 500 "upstream command exited prematurely"。
+  #   アイドル時の空き判定は約 99GB。mlx-serve の解放待ち (settledAvail) は同一プロセス内の
+  #   アンロード直後にしか働かないので、プロセスを跨ぐスワップでは待ってくれない。
+  #   3 秒待ってから exec する (exec なので llama-swap の SIGTERM は mlx-serve に直接届く)。
+  settle: /bin/sh -c 'sleep 3; exec "$0" "$@"'
   # run_onchange_after_install-mlx-serve.sh が MLX_SERVE_VERSION を固定して配置する。
   mlx_serve: /Users/joe/.local/opt/mlx-serve/current/mlx-serve-macos-arm64/mlx-serve
   # 戻し用 (現在は未使用)。run_onchange_after_install-llama-cpp.sh の LLAMA_CPP_BUILD で固定。
@@ -80,6 +88,7 @@ models:
   # mlx-serve の /v1/models はディレクトリ名 (org/ なし) を id にするので useModelName で読み替える。
   qwen38-flash-next:
     cmd: |
+      ${settle}
       ${mlx_serve}
       --model /Users/joe/.mlx-serve/models/ddalcu/Qwen3.8-Flash-Next-MLX-Serve-4bit
       --serve --host 127.0.0.1 --port ${PORT}
@@ -115,6 +124,7 @@ models:
   # 比較枠 RVN (0bserverx) と旧 27B 無検閲枠は同日撤去。
   qwen38-flash-next-uncensored:
     cmd: |
+      ${settle}
       ${mlx_serve}
       --model /Users/joe/.mlx-serve/models/ARC4NUM/Qwen3.8-Flash-Next-Uncensored-MLX-Serve-4bit
       --serve --host 127.0.0.1 --port ${PORT}

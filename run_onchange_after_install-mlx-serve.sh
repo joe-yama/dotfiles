@@ -27,12 +27,16 @@ set -euo pipefail
 #       → 26.11.1 (2026-11-04、26.9.5〜26.10.3 を飛ばして更新。Flash-Next decode/prefill 高速化、
 #       並列長文の待ち合わせ (OOM 回避)、--os-reserve-gib、投機デコードが既定 on、thinking 予算は
 #       reasoning_effort 未指定で low=2048。sha256 は Formula 掲載値 = Release asset digest)。
+#       → 26.11.2 (2026-11-08、MLX 0.32.5、macOS によるモデル退避の防止、Flash-Next の SSD 退避後の
+#       分岐再開をチェックポイントから、エージェント次ターンでのキャッシュ済み応答の再利用、画像+並列での
+#       クラッシュ修正、reasoning_effort が思考を打ち切らなくなった (上限は reasoning budget のみ)。
+#       sha256 は Formula 掲載値 = Release asset digest)。
 #
 # モデルは ~/.mlx-serve/models/<org>/<repo>/ に置く (`mlx-serve pull <org/repo>` か手動)。
 # ⚠️ `mlx-serve pull` は既存ディレクトリの欠落シャードを検出しないので、手動取得したときは
 #    HF API (?blobs=true) の siblings サイズと全ファイルを照合すること。
-MLX_SERVE_VERSION="26.11.1"
-MLX_SERVE_SHA256="9acaa7a21b294536c3db9f2683d85079727b4e8db725d34260020499523dc267"
+MLX_SERVE_VERSION="26.11.2"
+MLX_SERVE_SHA256="550561d8bee59c40163da5e356d107fc290544c5f5d07d5add9943571b6930b5"
 
 PREFIX="$HOME/.local/opt/mlx-serve"
 DEST="$PREFIX/mlx-serve-$MLX_SERVE_VERSION"
