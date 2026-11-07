@@ -54,7 +54,7 @@ llama.cpp から mlx-serve へ切り替えた (経緯と実測は `mlxserve-ab-2
 | モデルパック | `~/.mlx-serve/models/<org>/<repo>/` | `mlx-serve pull <org/repo>` または並列 curl (`docs/bench/` 参照) | `ngram_table.bin` 32GB は mmap (page cache)、safetensors 100 shard は wired。**NAS バックアップ**: `smb://192.168.0.214/personal_folder/localllm/mlx-serve/models/<org>/<repo>/` (2026-09-17、各パックに `SHA256SUMS` 併置、`releases/` に mlx-serve tarball)。`ddalcu/…-MLX-Serve-4bit` は 2026-09-17 時点で HF から消滅しており (ddalcu org には `mixed-4-8bit` と `iQ-MLX-3.3bpw` のみ)、**NAS が唯一の再取得元** |
 | llama.cpp b10769 (待機) | `~/.local/opt/llama.cpp/current/` | `run_onchange_after_install-llama-cpp.sh` | GGUF は削除済み。戻すときは HF から再取得 (unsloth UD-Q3_K_XL 90GB / mradermacher i1-IQ4_XS 97.5GB) |
 | tailscale serve | tailscaled の状態 (dotfiles 外) | `tailscale serve --bg --https=443 8080` | 8443 → 3080 は dsh web。リセットで消える |
-| Hermes Agent | `~/.local/bin/hermes` (uv tool、Py3.12) | `run_onchange_after_install-uv-tools.sh` | gateway LaunchAgent `ai.hermes.gateway`。cron `local-llm-daily-jp` が毎日 09:00 JST に既定モデルを叩く |
+| Hermes Agent v0.23 | `~/.hermes/hermes-agent/` (git checkout、stable channel、PM 管理の Python 3.14) + `~/.local/bin/hermes` wrapper | `run_onchange_after_install-hermes.sh` (初回のみ install.sh、更新は `hermes update`。PyPI 版は 0.19.0 で停止) | gateway LaunchAgent `ai.hermes.gateway`。cron `local-llm-daily-jp` が毎日 09:00 JST に既定モデルを叩く |
 | opencode / dsh | 各端末 | — | tailnet 経由で 8080 を使う |
 
 ## メモリの見取り図 (128GB)

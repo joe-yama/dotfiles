@@ -24,39 +24,49 @@ model:
   max_tokens: 131072
 # hermes が書き込むマイグレーション marker。手で書き換えないこと。
 # hermes 更新でこの値が上がったら chezmoi diff → source に取り込む。
-_config_version: 33
+_config_version: 52
 plugins:
-  # Discord ゲートウェイ (bundled plugin)。`hermes plugins enable discord-platform`
-  # 相当。トークン等は ~/.hermes/.env (private_dot_env.tmpl) で設定する。
+  # hermes はこのリストを並べ替えて書き戻し、リスト内のコメントを消す。説明はここに書く。
+  # - platforms/discord: Discord ゲートウェイ (bundled)。トークン等は ~/.hermes/.env
+  #   (private_dot_env.tmpl)。依存は PM extra `discord`。
+  # - disk-cleanup: セッション中に作った test_*/tmp_* を hook で自動掃除 (bundled)。
+  #   `/disk-cleanup status|dry-run|quick` で手動操作も可。
+  # - security-guidance: write_file/patch の内容に eval/pickle.load/shell=True 等
+  #   25 パターンを検知して結果に警告を付ける (bundled、LLM トークン消費ゼロ)。
+  #   ローカル LLM のコード生成の安全網。SECURITY_GUIDANCE_BLOCK=1 で拒否に変えられる。
+  # - rtk-rewrite: カタログ community プラグイン (kerrz2020/hermes-rtk-rewrite、
+  #   ~/.hermes/plugins/rtk-rewrite)。terminal コマンドを `rtk <cmd>` に書き換えて
+  #   出力を 60-90% 圧縮する (ローカル推論は prefill が約160 tok/s なのでプロンプト
+  #   短縮がそのまま待ち時間短縮)。rtk は Brewfile の `brew "rtk"`、無ければ素通し。
+  # - holographic: memory.provider の実体。v0.23 で本体同梱から外れカタログ community
+  #   プラグイン (itpartypattaya/hermes-plugin-holographic) になった。
+  # - herdr-agent-state: herdr が ~/.hermes/plugins に置くユーザープラグイン (chezmoi 管理外)。
+  # web-ddgs (DuckDuckGo 検索、キー不要) は kind: backend の bundled で自動ロード。
+  # 依存は PM extra `ddgs` (run_onchange_after_install-hermes.sh)。
   enabled:
-    - platforms/discord
-    # 2026-09-03 追加 (全部無料・APIキー不要):
-    # - disk-cleanup: セッション中に作った test_*/tmp_* を hook で自動掃除 (bundled)。
-    #   `/disk-cleanup status|dry-run|quick` で手動操作も可。
-    # - security-guidance: write_file/patch の内容に eval/pickle.load/shell=True 等
-    #   25 パターンを検知して結果に警告を付ける (bundled、LLM トークン消費ゼロ)。
-    #   ローカル LLM のコード生成の安全網。SECURITY_GUIDANCE_BLOCK=1 で拒否に変えられる。
-    # - rtk-rewrite: PyPI `rtk-hermes` の entry point 名。terminal ツールのコマンドを
-    #   `rtk <cmd>` に書き換えて出力を 60-90% 圧縮する (ローカル推論は prefill が
-    #   約160 tok/s なのでプロンプト短縮がそのまま待ち時間短縮になる)。
-    #   rtk バイナリ (Brewfile `brew "rtk"`) が無いとプラグイン自体が登録をスキップする。
-    #   pip 配布なので `hermes plugins enable` では認識されない場合があり、ここに直書き。
-    #   pip 側は run_onchange_after_install-uv-tools.sh の --with で固定している。
     - disk-cleanup
-    - security-guidance
+    - herdr-agent-state
+    - holographic
+    - platforms/discord
     - rtk-rewrite
-  # 注: web-ddgs (DuckDuckGo 検索、キー不要) は kind: backend の bundled plugin で
-  # 自動ロードされる。有効化条件は `ddgs` パッケージが import できることだけ
-  # (uv-tools スクリプトの --with 'ddgs')。キー付きプロバイダが無い環境では
-  # tools/web_tools.py の自動選択で ddgs が search backend になる。
+    - security-guidance
+  disabled: []
 memory:
-  # 外部メモリプロバイダ (単一選択)。holographic は bundled の SQLite+FTS5 事実ストアで
+  # 外部メモリプロバイダ (単一選択)。holographic は SQLite+FTS5 の事実ストアで
   # 依存なし・外部 API なし。built-in MEMORY.md (2,200 字上限) を超える長期記憶を
   # fact_store ツールで持つ。DB は ~/.hermes/memory_store.db。
   # hermes が `plugins.hermes-memory-store` 等を追記したら chezmoi diff で取り込む。
   provider: holographic
-agent: {}
 # hermes が対話中に書き込む「案内を見た」フラグ。取り込んで diff を消しているだけ。
 onboarding:
   seen:
     busy_input_prompt: true
+# hermes update が書き込む install 記録 (install.sh 方式、stable channel)。
+update:
+  installs:
+    9bee92d9cb7a3f0d:
+      path: /Users/joe/.hermes/hermes-agent
+      channel: stable
+# `hermes gateway install` が書き込む選択の記録。
+gateway:
+  service_install_choice: install

@@ -3,3 +3,7 @@ eval "$(/opt/homebrew/bin/brew shellenv)"
 
 # Added by Obsidian
 export PATH="$PATH:/Applications/Obsidian.app/Contents/MacOS"
+
+# ~/.local/bin を末尾に足す (dot_zshrc と同じ優先度)。Hermes の install.sh は
+# この形の行が無いと ~/.local/bin を PATH 先頭に足すブロックを追記するので、その抑止も兼ねる。
+case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$PATH:$HOME/.local/bin" ;; esac
