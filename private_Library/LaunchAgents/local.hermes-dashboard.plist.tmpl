@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>local.hermes-dashboard</string>
+	<!-- Hermes Agent の web dashboard を 127.0.0.1:9119 で常駐させる (Hermes には
+	     dashboard の service 化コマンドが無い)。tailnet 公開は tailscale serve
+	     (https://<host>.ts.net:9119 → 127.0.0.1:9119、設定は tailscaled 側)。
+	     認証は ~/.hermes/.env の HERMES_DASHBOARD_BASIC_AUTH_* と
+	     config.yaml の dashboard.public_url。
+	     web UI は hermes update がビルドするので起動時は --skip-build。
+	     hermes update 後は dashboard を再起動する:
+	     launchctl kickstart -k gui/$UID/local.hermes-dashboard -->
+	<key>ProgramArguments</key>
+	<array>
+		<string>{{ .chezmoi.homeDir }}/.local/bin/hermes</string>
+		<string>dashboard</string>
+		<string>--no-open</string>
+		<string>--host</string>
+		<string>127.0.0.1</string>
+		<string>--port</string>
+		<string>9119</string>
+		<string>--skip-build</string>
+	</array>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>HERMES_HOME</key>
+		<string>{{ .chezmoi.homeDir }}/.hermes</string>
+		<key>PATH</key>
+		<string>{{ .chezmoi.homeDir }}/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+	</dict>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<true/>
+	<key>ThrottleInterval</key>
+	<integer>30</integer>
+	<key>StandardOutPath</key>
+	<string>{{ .chezmoi.homeDir }}/.hermes/logs/dashboard.log</string>
+	<key>StandardErrorPath</key>
+	<string>{{ .chezmoi.homeDir }}/.hermes/logs/dashboard.log</string>
+	<key>WorkingDirectory</key>
+	<string>{{ .chezmoi.homeDir }}/.hermes</string>
+</dict>
+</plist>

@@ -7,3 +7,9 @@ DISCORD_ALLOWED_USERS=559018546957647873
 # Hermes が追記した Discord ホームチャンネル (cron 等の配信先)
 DISCORD_HOME_CHANNEL=1542510411386195980
 DISCORD_HOME_CHANNEL_THREAD_ID=
+# Web dashboard の ID/パスワード認証 (bundled dashboard_auth/basic)。tailscale serve
+# 経由 (dashboard.public_url) は非ループバック扱いで認証必須。SECRET は cookie 署名鍵で、
+# 固定しておくと dashboard 再起動後もログインが続く。値は 1Password「Hermes Dashboard」
+HERMES_DASHBOARD_BASIC_AUTH_USERNAME={{ onepasswordRead "op://Personal/Hermes Dashboard/username" }}
+HERMES_DASHBOARD_BASIC_AUTH_PASSWORD={{ onepasswordRead "op://Personal/Hermes Dashboard/password" }}
+HERMES_DASHBOARD_BASIC_AUTH_SECRET={{ onepasswordRead "op://Personal/Hermes Dashboard/secret" }}

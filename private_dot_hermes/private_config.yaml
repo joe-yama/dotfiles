@@ -57,6 +57,12 @@ memory:
   # fact_store ツールで持つ。DB は ~/.hermes/memory_store.db。
   # hermes が `plugins.hermes-memory-store` 等を追記したら chezmoi diff で取り込む。
   provider: holographic
+# Web dashboard は LaunchAgent local.hermes-dashboard が 127.0.0.1:9119 で常駐し、
+# `tailscale serve --bg --https=9119 http://127.0.0.1:9119` で tailnet に公開している。
+# public_url はその HTTPS origin (Host フェンスと OAuth/cookie の基準)。ここを設定すると
+# 非ループバック扱いになり認証必須 → ID/パスワードは .env の HERMES_DASHBOARD_BASIC_AUTH_*。
+dashboard:
+  public_url: https://josukes-macbook-pro.tail97ab8.ts.net:9119
 # hermes が対話中に書き込む「案内を見た」フラグ。取り込んで diff を消しているだけ。
 onboarding:
   seen:
