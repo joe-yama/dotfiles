@@ -43,6 +43,7 @@ short = 固定英文 (thinking on、256 tok)、long = 実テキスト ≈23.7k t
 
 - 品質プローブ (code 5 題 / tools 4 問 / NIAH / 日本語 / 無検閲は拒否 3 問) は全アーム同等。tools の 3/4 はエンジン差ではなくツール選択の揺れ。
 - MTP は本命パックで利得なし〜負 (24k 後 −2〜−14%)、無検閲パックで +4〜13%。パック依存なので既定 off で揃えた。
+- **2026-11-08 追記**: `qwen38-flash-next-uncensored` の実体を `AinsleyMarkov/Qwen3.8-Flash-Next-Uncensored-MLX-Serve-iQ-MLX-4.7bpw` (同系譜・同配分 + imatrix) に差し替えた。上表の無検閲行は旧 ARC4NUM パック・26.9.1・MTP off の値。差し替え時の A/B (26.11.2・MTP 既定 on・長文素材が別) は `bench/summary-20261108.md`。
 - 短文 TTFT は mlx-serve が 0.4 秒遅い。長文プレフィルは 1.7 倍速い。
 - mlx-serve は重みを wired で持つ (退避不可)。推論中のシステム wired は 78〜90GB。llama-swap の排他スワップ外で別モデルを立てると Metal OOM で落ちる (計測中に Hermes cron 09:00 との二重常駐で 1 回発生)。
 

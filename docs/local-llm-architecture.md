@@ -29,11 +29,11 @@ llama.cpp から mlx-serve へ切り替えた (経緯と実測は `mlxserve-ab-2
 | エントリ / alias | パック | 用途 | 実測 (M4 Max) |
 |---|---|---|---|
 | `qwen38-flash-next` (`flash-next`, `default`) | `ddalcu/Qwen3.8-Flash-Next-MLX-Serve-4bit` (105GB、experts/attention 4bit g64、lm_head 8bit) | コーディング主力・日本語チャット。opencode / dsh の既定 | short 70 tok/s、24k 後 58、prefill 694 |
-| `qwen38-flash-next-uncensored` (`abliterated`) | `ARC4NUM/Qwen3.8-Flash-Next-Uncensored-MLX-Serve-4bit` (107GB、experts 4bit・attention/GDN/shared expert 8bit、orcarouter 系 abliteration) | **Hermes 既定**。拒否なし | short 56 tok/s、24k 後 48、prefill 700 |
+| `qwen38-flash-next-uncensored` (`abliterated`) | `AinsleyMarkov/Qwen3.8-Flash-Next-Uncensored-MLX-Serve-iQ-MLX-4.7bpw` (107GB、experts/embed 4bit・他 8bit + imatrix、orcarouter 系 abliteration。2026-11-08 に ARC4NUM mixed 4/8bit から差し替え) | **Hermes 既定**。拒否なし | short 71〜75 tok/s、24k 後 66〜68、prefill 700 (26.11.2・MTP on、2026-11-08) |
 
 モデルは Qwen3.8-Flash-Next (arch `qwen4_exp`): 125B MoE (512 experts top-10) + 51B n-gram 埋め込み表 + 4B MTP、
 アクティブ 6B/token、ネイティブ 262K コンテキスト、QSA スパースアテンション (2k 超は上位 512 ブロックのみ読む)。
-両エントリとも `--ctx-size 262144`、MTP off、KV 量子化 off。thinking は mlx-serve のサーバ既定が off で切り替えフラグも無いため、llama-swap の `filters.setParams` で `enable_thinking?: true` (v255 の set-if-undefined、キー末尾 `?`) を注入し、クライアントが指定しないときだけ on にしている (llama.cpp 時代と同じ挙動)。クライアントの `enable_thinking: false` は尊重される。2026-09-05〜09-11 は `?` 無しの hard 上書きだった。
+両エントリとも `--ctx-size 262144`、MTP は mlx-serve 既定 (26.10.1 から on)、KV 量子化 off。thinking は mlx-serve のサーバ既定が off で切り替えフラグも無いため、llama-swap の `filters.setParams` で `enable_thinking?: true` (v255 の set-if-undefined、キー末尾 `?`) を注入し、クライアントが指定しないときだけ on にしている (llama.cpp 時代と同じ挙動)。クライアントの `enable_thinking: false` は尊重される。2026-09-05〜09-11 は `?` 無しの hard 上書きだった。
 
 ### モデルを入れ替えるときに触る場所 (5 か所)
 
@@ -54,12 +54,12 @@ llama.cpp から mlx-serve へ切り替えた (経緯と実測は `mlxserve-ab-2
 | モデルパック | `~/.mlx-serve/models/<org>/<repo>/` | `mlx-serve pull <org/repo>` または並列 curl (`docs/bench/` 参照) | `ngram_table.bin` 32GB は mmap (page cache)、safetensors 100 shard は wired。**NAS バックアップ**: `smb://192.168.0.214/personal_folder/localllm/mlx-serve/models/<org>/<repo>/` (2026-09-17、各パックに `SHA256SUMS` 併置、`releases/` に mlx-serve tarball)。`ddalcu/…-MLX-Serve-4bit` は 2026-09-17 時点で HF から消滅しており (ddalcu org には `mixed-4-8bit` と `iQ-MLX-3.3bpw` のみ)、**NAS が唯一の再取得元** |
 | llama.cpp b10769 (待機) | `~/.local/opt/llama.cpp/current/` | `run_onchange_after_install-llama-cpp.sh` | GGUF は削除済み。戻すときは HF から再取得 (unsloth UD-Q3_K_XL 90GB / mradermacher i1-IQ4_XS 97.5GB) |
 | tailscale serve | tailscaled の状態 (dotfiles 外) | `tailscale serve --bg --https=443 8080` | 8443 → 3080 は dsh web、9119 → 9119 は Hermes dashboard (`tailscale serve --bg --https=9119 http://127.0.0.1:9119`)。リセットで消える |
-| Hermes Agent v0.23 | `~/.hermes/hermes-agent/` (git checkout、stable channel、PM 管理の Python 3.14) + `~/.local/bin/hermes` wrapper | `run_onchange_after_install-hermes.sh` (初回のみ install.sh、更新は `hermes update`。PyPI 版は 0.19.0 で停止) | gateway LaunchAgent `ai.hermes.gateway`、dashboard LaunchAgent `local.hermes-dashboard` (127.0.0.1:9119、ID/パスワード認証、`hermes update` 後は `launchctl kickstart -k gui/$UID/local.hermes-dashboard`)。cron `local-llm-daily-jp` が毎日 09:00 JST に既定モデルを叩く |
+| Hermes Agent v0.23 | `~/.hermes/hermes-agent/` (git checkout、stable channel、PM 管理の Python 3.14) + `~/.local/bin/hermes` wrapper | `run_onchange_after_install-hermes.sh` (初回のみ install.sh、更新は `hermes update`。PyPI 版は 0.19.0 で停止) | gateway LaunchAgent `ai.hermes.gateway`、dashboard LaunchAgent `local.hermes-dashboard` (127.0.0.1:9119、ID/パスワード認証、`hermes update` 後は `launchctl kickstart -k gui/$UID/local.hermes-dashboard`)。cron `local-llm-daily-jp` (毎日 09:00 JST) は 2026-11-04 から一時停止中 |
 | opencode / dsh | 各端末 | — | tailnet 経由で 8080 を使う |
 
 ## メモリの見取り図 (128GB)
 
-- mlx-serve 起動時に Metal の wired limit を **110,100MB** に引き上げる。推論中はシステム全体の wired が **78〜90GB** に達し、アイドル時は 4GB 前後まで戻る。
+- mlx-serve 起動時に Metal の wired limit を **110,100MB** に引き上げる。推論中はシステム全体の wired が **78〜91GB** に達し (2026-11-08 の A/B で最大 91.1GB)、アイドル時は 4GB 前後まで戻る。
 - 重み (67〜70GB) は wired = 退避不可。上限を超えると `[METAL] Command buffer execution failed: Insufficient Memory` で**プロセスが即死**する (捕捉不能)。mlx-serve 26.9.2 からは単一プロセス内の長文プロンプト起因 OOM は当該リクエストのエラーに留まりサーバは生き残るとされる (CHANGELOG、実機未確認)。二重常駐は依然として不可。26.9.3 からは Flash-Next の prefill が 8192 トークン刻みになり (メモリが許す場合)、ピークが約 +3GB 増えるとされる (CHANGELOG)。llama.cpp は重みが page cache だったので圧迫時に遅くなるだけだった — 安定性の許容度は下がったが、llama-swap の排他スワップの中にいる限り問題ない。
 - n-gram 表 32GB は mmap で page cache 任せ。起動時に warm (約 5 秒) するので初回長文が遅くならない。
 - KV: 262K で数 GB。prefix cache は既定 2GB。

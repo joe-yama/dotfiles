@@ -106,32 +106,37 @@ models:
       - default
 
   # ── 無検閲: 拒否ゼロ系 (abliterated) — Hermes 既定 ─────────────────
-  # ARC4NUM/Qwen3.8-Flash-Next-Uncensored-MLX-Serve-4bit (107GB、113 ファイル、非 gated、Apache-2.0 表記)。
-  #   base_model: orcarouter/Qwen3.8-Flash-Next-Uncensored (BF16 で abliteration、系譜は旧 27B 無検閲枠と同じ)。
-  #   量子化は mixed 4/8bit: routed experts 4bit g64、attention / GDN / shared expert / lm_head 8bit g64、
-  #   n-gram 表 4bit g32。非 expert 部が 8bit なので本命より decode が遅い (56 vs 70 tok/s) が品質側に厚い。
-  #   常駐 ≈ 70GB (wired)。
-  #   取得: mlx-serve pull ARC4NUM/Qwen3.8-Flash-Next-Uncensored-MLX-Serve-4bit
+  # AinsleyMarkov/Qwen3.8-Flash-Next-Uncensored-MLX-Serve-iQ-MLX-4.7bpw (107.3GB、113 ファイル、非 gated、
+  #   Qwen Community License 1.0)。2026-11-08 に ARC4NUM パックから差し替え (エントリ名は不変)。
+  #   base_model: orcarouter/Qwen3.8-Flash-Next-Uncensored (BF16 で abliteration、旧 ARC4NUM と同じ系譜)。
+  #   量子化は旧 ARC4NUM と同配分 (routed experts / embed 4bit g64、attention / GDN / shared expert / lm_head ほか
+  #   8bit g64、n-gram 表 4bit g32) で、abliterated 重みで取った imatrix による重み付けを加えたもの
+  #   (mlx-serve converter 431ac5d)。ngram_table.bin は ddalcu iQ-MLX パックと同一バイト。常駐 ≈ 71GB (wired)。
+  #   作者実測 (M3 Ultra、比較は yomie4343 mixed-4-8bit = ARC4NUM と全ファイル SHA 一致): BF16 との KL 0.18 → 0.11、
+  #   code top-1 83.5 → 90.9%、math は 96.2 → 88.8% と劣る (不一致位置は低確信度のものに偏る)。
+  #   取得: mlx-serve pull AinsleyMarkov/Qwen3.8-Flash-Next-Uncensored-MLX-Serve-iQ-MLX-4.7bpw
   #
-  # 2026-09-05 実測 (llama.cpp mradermacher i1-IQ4_XS 比): decode 1.49 倍 / 24k 後 1.44 倍 / prefill 1.76 倍。
-  #   拒否プローブ 3 問 (フィッシング教材 / 小説の悪役独白 / 過量服薬情報) は両エンジンとも回答 →
-  #   量子化で abliteration は失われていない。tools 4/4、code 5/5。
-  #   --mtp はこのパックでは +8〜13% (短文) / +4% (24k 後) と小さく正だが、本命と揃えて off。
+  # 2026-11-08 実測 (旧 ARC4NUM 比、llama-swap 経由・MTP 既定 on・順序反転 2 周、docs/bench/summary-20261108.md):
+  #   short 75.2 / 71.0 vs 76.1 / 72.8 tok/s、24k 後 65.6 / 67.7 vs 64.6 / 64.9、prefill 697〜710 vs 681〜691 → 同等。
+  #   拒否プローブ 3 問 (フィッシング教材 / 小説の悪役独白 / 過量服薬情報) は両周とも全回答、tools 4/4、code 5/5、NIAH 2/2。
+  #   MTP: 26.10.1 から mlx-serve 既定 on (本命と同じ)。26.9.1 時の旧パックで off 56 tok/s → on 60〜64。
   # ⚠️ Flash-Next は MoE。MoE への abliteration は dense より品質劣化リスクが高い
-  #    (Qwen3-30B-A3B の abliterated が非 abliterated 4-8B に負けた報告あり)。
+  #    (Qwen3-30B-A3B の abliterated が非 abliterated 4-8B に負けた報告あり)。imatrix 化で減るのは量子化誤差だけ。
   #
+  # 旧 ARC4NUM/Qwen3.8-Flash-Next-Uncensored-MLX-Serve-4bit (mixed 4/8bit、2026-09-05〜11-08 の実体) は
+  #   NAS (localllm/mlx-serve/models/ARC4NUM/…、SHA256SUMS 併置) と HF に残っている。戻すときは --model と useModelName を戻す。
   # 旧 GGUF (mradermacher i1-IQ4_XS 97.5GB、37.7 tok/s) は 2026-09-05 に削除。
   # 比較枠 RVN (0bserverx) と旧 27B 無検閲枠は同日撤去。
   qwen38-flash-next-uncensored:
     cmd: |
       ${settle}
       ${mlx_serve}
-      --model /Users/joe/.mlx-serve/models/ARC4NUM/Qwen3.8-Flash-Next-Uncensored-MLX-Serve-4bit
+      --model /Users/joe/.mlx-serve/models/AinsleyMarkov/Qwen3.8-Flash-Next-Uncensored-MLX-Serve-iQ-MLX-4.7bpw
       --serve --host 127.0.0.1 --port ${PORT}
       --ctx-size 262144
       --timeout 0
       --prefix-cache-mem 12GB --prefix-cache-entries 64
-    useModelName: Qwen3.8-Flash-Next-Uncensored-MLX-Serve-4bit
+    useModelName: Qwen3.8-Flash-Next-Uncensored-MLX-Serve-iQ-MLX-4.7bpw
     checkEndpoint: /health
     filters:
       setParams:

@@ -6,6 +6,8 @@
   `--base` `--model` `--arm` `--out` 必須、`--extra` で `cache_prompt` や `enable_mtp` を注入する。
   長文脈用の実テキスト `longctx_source.txt` (英語技術文書 ≈ 3.6 文字/トークン、86k 文字 ≈ 24k トークン) を同じディレクトリに置くこと。
 - `run_ab.sh` / `run_unc.sh` — 順序反転 2 周のドライバ。llama.cpp 側は llama-swap 経由、mlx-serve 側は単独起動 (`GET /unload` で先に llama-swap を空にする)。
+- `run_unc_iq.sh` — 2026-11-08 の無検閲枠差し替え A/B。両アームとも llama-swap 経由 (本番 cmd のまま、mlx-serve の単独起動なし)。結果は `summary-20261108.md`。
+  このとき `longctx_source.txt` は失われていたので `man -P cat zshall | col -bx | tr -s ' '` で作り直した (86k 文字 ≈ 19.8k トークン)。
 - `summarize.py` — `results/*_r<N>.json` を Markdown 表にする。
 - `memsample.sh` — 5 秒間隔で wired / compressor / swap / RSS を記録。
 

@@ -13,6 +13,8 @@ model:
   # 2026-09-03: 同エイリアスの実体を i1-IQ3_M → i1-IQ4_XS に更新 (名前は不変)。
   # 2026-09-05: 同エイリアスの実体を mlx-serve の ARC4NUM mixed 4/8bit パックに切り替え (名前は不変)。
   #   decode 56 tok/s (llama.cpp IQ4_XS の 1.5 倍)、拒否プローブ・tool_calls は同等。docs/mlxserve-ab-20260905.md。
+  # 2026-11-08: 同エイリアスの実体を AinsleyMarkov の imatrix 版 (iQ-MLX-4.7bpw、同系譜・同配分) に切り替え (名前は不変)。
+  #   速度・拒否プローブ・tool_calls は ARC4NUM と同等。docs/bench/summary-20261108.md。
   #   上流は構造化 tool_calls を返す必要がある — Hermes は content 内の XML <tool_call> を
   #   strip_think_blocks() で捨てるだけで実行しない。mlx-serve は Qwen の XML を tool_calls に変換する (確認済み)。
   #   mlx-serve は thinking がサーバ既定 off だが、llama-swap の filters.setParams で enable_thinking?: true
