@@ -8,15 +8,37 @@
 	     直接接続してしまい AI が Connection Failed になる。Raycast 設定「Use System Proxy Settings」を
 	     オフにし、.zshrc.local (マシン固有) の proxy 環境変数を渡して起動する。
 	     launchctl setenv は LaunchServices 起動のアプリに渡らないため open --env を使う。
-	     .zshrc.local に proxy が無いマシンでは env なしで起動するだけ。
-	     Raycast 自身の「Launch at login」はオフにしておくこと (先に起動すると env が付かない) -->
+	     Raycast の自動アップデートや手動再起動は env なしで起動し直すので、ログイン時に加えて
+	     Raycast.app の差し替えと定期チェックで「env なしで動いていたら起動し直す」。
+	     .zshrc.local に proxy が無いマシンでは、未起動なら env なしで起動するだけ。
+	     Raycast 自身の「Launch at login」はオフにしておくこと -->
 	<key>ProgramArguments</key>
 	<array>
 		<string>/bin/zsh</string>
 		<string>-c</string>
-		<string>[ -f "$HOME/.zshrc.local" ] &amp;&amp; source "$HOME/.zshrc.local"; args=(); for v in HTTPS_PROXY HTTP_PROXY NO_PROXY; do [ -n "${(P)v}" ] &amp;&amp; args+=(--env "$v=${(P)v}"); done; exec /usr/bin/open -a Raycast "${args[@]}"</string>
+		<string>
+sleep 5  # アップデータによる再起動を待つ
+[ -f "$HOME/.zshrc.local" ] &amp;&amp; source "$HOME/.zshrc.local"
+args=()
+for v in HTTPS_PROXY HTTP_PROXY NO_PROXY; do
+  [ -n "${(P)v}" ] &amp;&amp; args+=(--env "$v=${(P)v}")
+done
+if pid=$(pgrep -x Raycast); then
+  (( ${#args} )) || exit 0
+  ps eww -o command= -p $pid | grep -q 'HTTPS_PROXY=' &amp;&amp; exit 0
+  kill $pid
+  for i in {1..20}; do pgrep -x Raycast >/dev/null || break; sleep 1; done
+fi
+exec /usr/bin/open -a Raycast "${args[@]}"
+</string>
 	</array>
 	<key>RunAtLoad</key>
 	<true/>
+	<key>WatchPaths</key>
+	<array>
+		<string>/Applications/Raycast.app</string>
+	</array>
+	<key>StartInterval</key>
+	<integer>300</integer>
 </dict>
 </plist>
