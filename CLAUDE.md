@@ -10,6 +10,7 @@
 - 鍵はディスク上に 4 本。署名 `~/.ssh/git-signing-{work,personal}`、push/fetch 認証 `~/.ssh/git-auth-{work,personal}`
 - 4 本とも `run_onchange_after_gen-git-keys.sh` が生成する (chezmoi/Git 管理外・マシンごと)。新しいマシンでは GitHub に要登録 — 署名鍵は **Signing key**、認証鍵は **Authentication key**
 - jj は署名しない (`signing.backend = "none"`) — 署名が付くのは `git commit` を直接使ったときだけ
+- サンドボックス内から使えるよう `sandbox.filesystem.allowRead` で GitHub 用の鍵と ssh config だけ再許可している (詳細: `.claude/rules/multi-github-ssh.md`)
 
 ## chezmoi Workflow
 

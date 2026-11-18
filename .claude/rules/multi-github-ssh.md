@@ -26,6 +26,15 @@ paths:
 - 新しいマシンでは各鍵を対応アカウントに登録が必要
   — 署名鍵は **Signing key**、認証鍵は **Authentication key** (種別を間違えると push も署名検証も通らない)
 
+## Claude Code サンドボックス内からの署名・push
+- `dot_claude/private_settings.json` の `sandbox.filesystem` で `~/.ssh` を `denyRead` しつつ、
+  `allowRead` で GitHub 用の鍵・`config`・`config.d`・`known_hosts` だけ再許可している
+- `~/.ssh` を `sandbox.credentials.files` (mode: deny) に戻さない — credentials の deny を
+  `allowRead` で再許可できるかは公式に記載がない。`denyRead`+`allowRead` は「狭いパスが勝つ」と明記されている
+- `~/.ssh/config` が読めないと `github-personal` 等のエイリアスが解決されず push が失敗する (エラーにならず素通りするので気付きにくい)
+- 通信はサンドボックスが注入する `GIT_SSH_COMMAND` (ProxyCommand 経由) で github.com:22 に出る — `allowedDomains` の `github.com` が必要
+- 他の SSH 鍵 (`id_*` 等) は引き続き読めない。GitHub 用に鍵を足すときは `allowRead` にも追加する
+
 ## Exception: github-ccoe (local key)
 - Private key `~/.ssh/github-ccoe` is a local file (no passphrase) — NEVER `chezmoi add` it; only the `.pub` is managed
 - SSH: `IdentityFile` points to the private key + `IdentityAgent none` (bypass 1Password Agent)
